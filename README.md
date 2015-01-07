@@ -1,0 +1,1 @@
+Shell scripts for launching Spark and running applications (e.g. Thunder) on the Janelia Research Center cluster.
