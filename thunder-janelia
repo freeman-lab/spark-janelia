@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser(description="setup and run thunder")
 parser.add_argument("task", choices=('install', 'update', 'start'), default='start')
 parser.add_argument("-v", "--sparkversion", type=str, default='1', required=False)
 parser.add_argument("-i", "--ipython", action="store_true")
+parser.add_argument("-l", "--thunderpath", type=str, default='~/thunder', required=False)
 
 args = parser.parse_args()
 
@@ -20,22 +21,27 @@ SPARKVERSIONS = {
     '3': '/usr/local/spark-test'
 }
 
+if not args.thunderpath[0] in set(('/','~')):
+    location  = os.getcwd() + '/' + args.thunderpath
+else:
+    location = args.thunderpath
+location  = os.path.expanduser(location)
+
 if args.task == 'install':
    
     if os.getenv('PATH') is None:
        os.environ['PATH'] = ""
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
 
-    location = os.path.expanduser("~") + '/thunder'
     if os.path.exists(location):
     	print('\n')
         print >> sys.stderr, "thunder already exists, run with 'update' to update installation"
         print('\n')
     else:
     	os.system('git clone git://github.com/freeman-lab/thunder.git ' + location)
-    	subprocess.call(os.path.expanduser("~") + '/thunder/python/bin/build')
+    	subprocess.call(location + '/python/bin/build')
     	print('\n')
-    	print("thunder installed to ~/thunder")
+    	print("thunder installed to " + args.thunderpath)
     	print('\n')
 
 if args.task == 'update':
@@ -45,15 +51,14 @@ if args.task == 'update':
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
 
     cwd = os.getcwd()
-    location = os.path.expanduser("~") + '/thunder'
     if not os.path.exists(location):
     	print('\n')
-        print >> sys.stderr, "cannot find thunder installation in ~/thunder, try running install first"
+        print >> sys.stderr, "cannot find thunder installation in " + args.thunderpath + ", try running install first"
         print('\n')
     else:
 	    os.chdir(location)
 	    os.system('git pull')
-	    subprocess.call(os.path.expanduser("~") + '/thunder/python/bin/build')
+	    subprocess.call(location + '/python/bin/build')
 	    os.chdir(cwd)
 	    print('\n')
 	    print("thunder is up-to-date and rebuilt")
@@ -68,7 +73,7 @@ if args.task == 'start':
 
     if os.getenv('PYTHONPATH') is None:
         os.environ['PYTHONPATH'] = ""
-    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + os.path.expanduser("~") + "/thunder/python/"
+    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/python/"
   
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
@@ -76,8 +81,8 @@ if args.task == 'start':
     if os.getenv('IPYTHON') is None:
        os.environ['IPYTHON'] = "1"
 
-    os.environ['PATH'] = os.environ['PATH'] + ":" + os.path.expanduser("~") + "/thunder/python/bin"
+    os.environ['PATH'] = os.environ['PATH'] + ":" + location + "/python/bin"
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
     f = open(os.path.expanduser("~") + '/spark-master', 'r')
     os.environ['MASTER'] = f.readline().replace('\n','')
-    os.system(os.path.expanduser("~") + '/thunder/python/bin/thunder')
+    os.system(location + '/python/bin/thunder')
