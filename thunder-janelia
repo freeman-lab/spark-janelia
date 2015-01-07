@@ -21,11 +21,7 @@ SPARKVERSIONS = {
     '3': '/usr/local/spark-test'
 }
 
-if not args.thunderpath[0] in set(('/','~')):
-    location  = os.getcwd() + '/' + args.thunderpath
-else:
-    location = args.thunderpath
-location  = os.path.expanduser(location)
+location = os.path.realpath(os.path.expanduser(args.thunderpath))
 
 if args.task == 'install':
    
