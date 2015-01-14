@@ -24,6 +24,9 @@ SPARKVERSIONS = {
 
 version = SPARKVERSIONS[args.version]
 
+if args.nnodes == 1:
+    raise Exception('Cannot start a Spark cluster with only 1 node, please request 2 or more.')
+
 if args.task == 'launch':
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
         os.mkdir(os.path.expanduser('~/sparklogs'))
