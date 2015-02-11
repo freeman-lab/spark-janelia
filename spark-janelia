@@ -23,7 +23,14 @@ SPARKVERSIONS = {
     '3': '/usr/local/spark-test'
 }
 
+SPARKVERSIONSSHORT = {
+    '1': 'spark',
+    '2': 'spark2',
+    '3': 'spark3'
+}
+
 version = SPARKVERSIONS[args.version]
+version_short = SPARKVERSIONSSHORT[args.version]
 
 if args.nnodes == 1:
     raise Exception('Cannot start a Spark cluster with only 1 node, please request 2 or more.')
@@ -32,7 +39,7 @@ if args.task == 'launch':
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
         os.mkdir(os.path.expanduser('~/sparklogs'))
 
-    output = subprocess.check_output(['qsub', '-jc', version, '-pe', version, str(args.nnodes), '-q', 'hadoop2', '-j', 'y', '-o', os.path.expanduser('~/sparklogs/'), '/sge/8.1.4/examples/jobs/sleeper.sh', '86400'])
+    output = subprocess.check_output(['qsub', '-jc', version_short, '-pe', version_short, str(args.nnodes), '-q', 'hadoop2', '-j', 'y', '-o', os.path.expanduser('~/sparklogs/'), '/sge/8.1.4/examples/jobs/sleeper.sh', '86400'])
     print('\n')
     print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
     print('\n')
@@ -52,7 +59,7 @@ elif args.task == 'login':
             jobclass = job.find('jclass_name').text
             state = job.find('state').text
             jobid = int(job.find('JB_job_number').text)
-            if (jobclass == version + ".default") and (state == 'r'):
+            if (jobclass == version_short + ".default") and (state == 'r'):
                 if args.jobid:
                     if jobid == args.jobid:
                         address = job.find('queue_name').text.split('@')[1]
@@ -84,7 +91,7 @@ elif args.task == 'destroy':
             jobclass = job.find('jclass_name').text
             state = job.find('state').text
             jobid = job.find('JB_job_number').text
-            if (jobclass == version + ".default") and (state == 'r'):
+            if (jobclass == version_short + ".default") and (state == 'r'):
                 if args.jobid:
                     if int(jobid) == args.jobid:
                         output = subprocess.check_output(['qdel', jobid])
@@ -106,7 +113,7 @@ elif args.task == 'start':
     if args.ipython is True:
        os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
 
-    os.environ['SPARK_HOME'] = SPARKVERSIONS[args.sparkversion]
+    os.environ['SPARK_HOME'] = version
 
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
@@ -117,11 +124,11 @@ elif args.task == 'start':
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
     f = open(os.path.expanduser("~") + '/spark-master', 'r')
     os.environ['MASTER'] = f.readline().replace('\n','')
-    os.system('/usr/local/spark-current/bin/pyspark')
+    os.system(version + '/bin/pyspark')
 
 elif args.task == 'start-scala':
 
-    os.environ['SPARK_HOME'] = SPARKVERSIONS[args.sparkversion]
+    os.environ['SPARK_HOME'] = version
 
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
@@ -129,6 +136,6 @@ elif args.task == 'start-scala':
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
     f = open(os.path.expanduser("~") + '/spark-master', 'r')
     os.environ['MASTER'] = f.readline().replace('\n','')
-    os.system(SPARKVERSIONS[args.sparkversion] + '/bin/spark-shell')
+    os.system(version + '/bin/spark-shell')
 
 
