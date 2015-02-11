@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 
 parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
 
-parser.add_argument("task", choices=('launch', 'login', 'destroy', 'start'))
+parser.add_argument("task", choices=('launch', 'login', 'destroy', 'start', 'start-scala', 'submit'))
 parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
 parser.add_argument("-i", "--ipython", action="store_true")
 parser.add_argument("-v", "--version", choices=("1", "2", "3"), default="1", required=False)
