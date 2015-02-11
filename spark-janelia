@@ -14,7 +14,7 @@ parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
 parser.add_argument("-i", "--ipython", action="store_true")
 parser.add_argument("-v", "--version", choices=("1", "2", "3"), default="1", required=False)
 parser.add_argument("-j", "--jobid", type=int, default=None, required=False)
-parser.add_argument("-s", "--submitargs", type=str, default=None, required=False)
+parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
 
 args = parser.parse_args()
 
