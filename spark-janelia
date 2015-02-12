@@ -118,7 +118,7 @@ elif args.task == 'start':
        os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
        notebook = master[8:][:-5]
        print('\n')
-       print('View your notebooks at http://' + notebook + ':9999')
+       print('View your notebooks at https://' + notebook + ':9999')
        print('\n')
 
     os.environ['SPARK_HOME'] = version
