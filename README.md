@@ -7,6 +7,7 @@ Shell scripts and utilities for launching Spark and running applications (e.g. T
 ---
 
 ### Getting up and running with Thunder at Janelia
+The scripts in this repository automate many of the tedious and unenlightening steps/configurations needed to get Spark and Thunder up and running on Janelia's cluster. Here are some basic steps to guide you through their use.
 
 #### Initial setup
 1. Log in to one of Janelia's login nodes (see Janelia's [Scientific Computing](http://wiki.int.janelia.org/wiki/display/ScientificComputing/Janelia+Compute+Cluster) resources for information on how to do this).
