@@ -28,7 +28,7 @@ export PATH=/usr/local/python-2.7.6/bin/:$PATH
 ```
 If you want to follow the next steps in the same session, source your profile by typing `source ~/.bash_profile`.
 
-### Starting a Spark cluster
+#### Starting a Spark cluster
 While logged in to one of Janelia cluster's login nodes, submit a request for a group of nodes to run as a Spark cluster using:
 ```
 spark-janelia -n <number_of_nodes>
@@ -43,7 +43,7 @@ spark-janelia login
 ```
 You can now run Spark applications as described below.
 
-### Running basic Spark jobs
+#### Running basic Spark jobs
 To start the Spark interactive shell in Python call
 ```
 spark-janelia start
@@ -59,18 +59,32 @@ And to submit a Spark application to run call
 spark-janelia submit -s <submit_arguments>
 ```
 Where `submit_arguments` is a string of arguments you would normally pass to `spark-submit`, as described [here].
-
-### Installing and running Thunder
-Many of us at Janelia are using the `thunder` Python library for working with neural data in Spark. The scripts in this repo also make installing and using Thunder easy. First, to install, just type
+---
+### Running Thunder
+Many of us at Janelia are using the `thunder` Python library for working with neural data in Spark. The scripts in this repo also make installing and using Thunder easy. 
+#### Install and run
+First, to install, from your home directory type
 ```
 thunder-janlelia install
 ```
-This will clone a copy of Thunder into your local directory. To start Spark with Thunder, just type
+This will clone a copy of Thunder into your home directory. If you want to install to a different location, use
+```
+thunder-janelia install -p <path_to_thunder>
+```
+To start Spark with Thunder, type
 ```
 thunder-janelia start
 ```
 This will open an interactive shell [Thunder](http://thunder-project.com/thunder/) functionality preloaded. See that project page for how to use this library in your data workflows and analyses.
 
+If you want to grab the latest version, use
+```
+thunder-janelia update
+```
+If you have your own version of Thunder (e.g. because you have cloned its repo and are modifying its source code), you can specify a version to run by specifying the location directly
+```
+thunder-janelia start -p <path_to_thunder>
+---
 ### Using the IPython notebook
 When running Spark in Python, the IPython notebook is a fantastic way to run analyses and inspect and visualize results. These scripts provide a simple route for setting up the notebook for use on Janelia's cluster.
 
@@ -90,14 +104,14 @@ Instead of opening a shell, this will launch an IPython Notebook server on the d
 When prompted, enter the password you chose in the OPTIONAL step of the Thunder setup. You should now have a graphical interface to the directory from which you launched the IPython Notebook server. From here you can create a new notebook or edit a previously-existing one.
 
 To shut down the IPython Notebook server, return to the terminal where the server is running and type `Ctrl+C+C`.
-
+---
 ### Shutting down
 When you are finished with your jobs, log out of the driver with the simple command `exit` from the command line. Finally, release your nodes with
 ```
 spark-janelia destroy
 ```
 You can check that these nodes have successfully been released with the `qstat` command.
----
 
+---
 ## Questions and comments
 Many Spark users at Janelia can be found in the [Gitter chat rooom](https://gitter.im/freeman-lab/spark-janelia?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) for this repository. If you have questions or comments, or just want to join the conversation, please drop in!
