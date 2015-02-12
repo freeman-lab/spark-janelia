@@ -111,8 +111,15 @@ elif args.task == 'destroy':
 
 elif args.task == 'start':
 
+    f = open(os.path.expanduser("~") + '/spark-master', 'r')
+    master = f.readline().replace('\n','')
+
     if args.ipython is True:
        os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
+       notebook = master[8:][:-5]
+       print('\n')
+       print('View your notebooks at http://' + notebook + ':9999')
+       print('\n')
 
     os.environ['SPARK_HOME'] = version
 
@@ -123,8 +130,7 @@ elif args.task == 'start':
        os.environ['IPYTHON'] = "1"
 
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
-    f = open(os.path.expanduser("~") + '/spark-master', 'r')
-    os.environ['MASTER'] = f.readline().replace('\n','')
+    os.environ['MASTER'] = master
     os.system(version + '/bin/pyspark')
 
 elif args.task == 'start-scala':
