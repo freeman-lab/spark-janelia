@@ -41,7 +41,7 @@ def launch():
     return jobId
 
 
-def login(jobId = ''):
+def login():
     status = subprocess.check_output(["qstat", "-xml"])
     qtree = ET.fromstring(status)[0]
     jtree = ET.fromstring(status)[1]
