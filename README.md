@@ -64,7 +64,7 @@ Many of us at Janelia are using the `thunder` Python library for working with ne
 #### Installing
 First, to install, from your home directory type
 ```
-thunder-janlelia install
+thunder-janelia install
 ```
 This will clone a copy of Thunder into your home directory. To install to a different location, use
 ```
@@ -98,7 +98,7 @@ This will configure your IPython Notebook settings to be compatible with Janelia
 Now, when starting either Spark or Thunder, add the `-i` flag, as in:
 ```
 spark-janelia start -i
-thunder-janlelia start -i
+thunder-janelia start -i
 ```
 Instead of opening a shell, this will launch an IPython Notebook server on the driver. You will see a website addressed printed next to `View your notebooks at...`. Go to this address in a web browser. Your browser will complain that the connection is not trusted; just ignore and proceed.
 
