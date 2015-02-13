@@ -74,14 +74,11 @@ def login():
             print('\n')
 
 
-def destroy(jobId = ''):
+def destroy(jobId ):
     status = subprocess.check_output(["qstat", "-xml"])
     qtree = ET.fromstring(status)[0]
     jtree = ET.fromstring(status)[1]
     jobs = qtree.findall('job_list')
-    jid = args.jobid or jobId
-    if jid:
-        jid = int(jid)
     if len(jobs) == 0:
         print('\n')
         print >> sys.stderr, "No running jobs found"
@@ -93,10 +90,9 @@ def destroy(jobId = ''):
             state = job.find('state').text
             jobid = job.find('JB_job_number').text
             if (jobclass == version_short + ".default") and (state == 'r'):
-                if jid:
-                    if int(jobid) == jid:
-                        output = subprocess.check_output(['qdel', jobid])
-                        deleted += 1
+                if jobId and jobid == jobId:
+                    output = subprocess.check_output(['qdel', jobid])
+                    deleted += 1
                 else:
                     output = subprocess.check_output(['qdel', jobid])
                     deleted += 1
@@ -198,7 +194,7 @@ elif args.task == 'login':
     login()
 
 elif args.task == 'destroy':
-    destroy()
+    destroy(args.jobid or '')
 
 
 elif args.task == 'start':
