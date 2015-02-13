@@ -18,11 +18,11 @@ Navigate to a location in your home directory where you will store these scripts
 ```
 git clone https://github.com/freeman-lab/spark-janelia
 ```
-And add this location to your `PATH` variable, by adding this to your bash profile (usually located in `~/.bash_profile`)
+Add a line with this location to your bash profile (usually located in `~/.bash_profile`)
 ```
 export PATH=/path/to/spark-janelia:$PATH
 ```
-While doing this, point your PATH to a recent version of Python, by also adding this line:
+While doing this, also add this line to point your PATH to a recent version of Python:
 ```
 export PATH=/usr/local/python-2.7.6/bin/:$PATH
 ```
