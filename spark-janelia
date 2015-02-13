@@ -29,11 +29,11 @@ def isSparkJob(job):
     return job.find('jclass_name').text == version_short + '.default'
 
 
-def launch():
+def launch(sleepTime='86400'):
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
         os.mkdir(os.path.expanduser('~/sparklogs'))
 
-    output = subprocess.check_output(['qsub', '-jc', version_short, '-pe', version_short, str(args.nnodes), '-q', 'hadoop2', '-j', 'y', '-o', os.path.expanduser('~/sparklogs/'), '/sge/8.1.4/examples/jobs/sleeper.sh', '86400'])
+    output = subprocess.check_output(['qsub', '-jc', version_short, '-pe', version_short, str(args.nnodes), '-q', 'hadoop2', '-j', 'y', '-o', os.path.expanduser('~/sparklogs/'), '/sge/8.1.4/examples/jobs/sleeper.sh', sleepTime])
     print('\n')
     print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
     print('\n')
