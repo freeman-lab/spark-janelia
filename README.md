@@ -59,6 +59,7 @@ And to submit a Spark application to run call
 spark-janelia submit -s <submit_arguments>
 ```
 Where `submit_arguments` is a string of arguments you would normally pass to `spark-submit`, as described [here](https://spark.apache.org/docs/1.2.0/submitting-applications.html).
+
 ---
 ### Running Thunder
 Many of us at Janelia are using the `thunder` Python library for working with neural data in Spark. The scripts in this repo also make installing and using Thunder easy. 
@@ -107,6 +108,7 @@ When prompted, enter the password you chose above. You should now have a graphic
 To shut down the IPython Notebook server, return to the terminal where the server is running and type `Ctrl+C+C`.
 
 NOTE: You can't run Spark jobs in multiple notebooks at once. If you start one notebook, then start another, nothing will execute in the second one until you shutdown the first one (by clicking the shutdown button in the notebook browser).
+
 ---
 ### Shutting down
 When you are finished with all of your jobs, log out of the driver with the simple command `exit` in the command line. Finally, release your nodes with
