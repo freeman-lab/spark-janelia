@@ -162,7 +162,7 @@ def submit(master = ''):
 
 parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
 
-choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'launch-submit-and-destroy')
+choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd')
 
 parser.add_argument("task", choices=choices)
 parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
@@ -213,7 +213,7 @@ elif args.task == 'submit':
     submit()
     
 
-elif args.task == 'launch-submit-and-destroy':
+elif args.task == 'lsd':
     jobId  = launch()
     master = ''
     while( master == '' ):
