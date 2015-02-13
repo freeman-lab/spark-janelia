@@ -6,6 +6,7 @@ import sys
 import argparse
 import subprocess
 import xml.etree.ElementTree as ET
+import time
 
 
 def findMasterByJobId(jobId):
@@ -214,6 +215,7 @@ elif args.task == 'lsd':
     master = ''
     while( master == '' ):
         master = findMasterByJobId(jobId)
+        time.sleep(1) # wait 1 second to avoid spamming the cluster
     master = 'spark://%s:7077' % master
     print('\n')
     print('%-20s%s\n%-20s%s' % ( 'job id:', jobId, 'spark master:', master ) )
