@@ -26,7 +26,7 @@ While doing this, also add this line to point your PATH to a recent version of P
 ```
 export PATH=/usr/local/python-2.7.6/bin/:$PATH
 ```
-If you want to follow the next steps in the same session, source your profile by typing `source ~/.bash_profile`.
+If you want to continue in the same session, source your profile with `source ~/.bash_profile`.
 
 #### Starting a Spark cluster
 While logged in to one of Janelia cluster's login nodes, submit a request to run a group of nodes as a Spark cluster using:
