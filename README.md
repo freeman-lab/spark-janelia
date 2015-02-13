@@ -56,7 +56,7 @@ And to submit a Spark application to run call
 ```
 spark-janelia submit -s <submit_arguments>
 ```
-Where `submit_arguments` is a string of arguments you would normally pass to `spark-submit`, as described [here](https://spark.apache.org/docs/1.2.0/submitting-applications.html).
+Where `submit_arguments` is a string of arguments you would normally pass to `spark-submit`, as described in the [Spark documentation](https://spark.apache.org/docs/1.2.0/submitting-applications.html).
 
 ---
 ### Running Thunder
