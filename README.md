@@ -6,7 +6,7 @@ Shell scripts and utilities for launching Spark and running applications (e.g. T
 
 ---
 
-### Running Spark
+### Using Spark
 These scripts automate many of the tasks required to start and manage a Spark job.
 
 #### Initial setup
@@ -28,7 +28,7 @@ export PATH=/usr/local/python-2.7.6/bin/:$PATH
 ```
 If you want to continue in the same session, source your profile with `source ~/.bash_profile`.
 
-#### Starting a Spark cluster
+#### Starting a cluster
 While logged in to one of Janelia cluster's login nodes, submit a request to run a group of nodes as a Spark cluster using:
 ```
 spark-janelia -n <number_of_nodes>
@@ -41,7 +41,7 @@ spark-janelia login
 ```
 You can now run Spark applications as described below.
 
-#### Running basic Spark jobs
+#### Running basic jobs
 To start the Spark interactive shell in Python call
 ```
 spark-janelia start
@@ -59,9 +59,9 @@ spark-janelia submit -s <submit_arguments>
 Where `submit_arguments` is a string of arguments you would normally pass to `spark-submit`, as described in the [Spark documentation](https://spark.apache.org/docs/1.2.0/submitting-applications.html).
 
 ---
-### Running Thunder
+### Using Thunder
 Many of us at Janelia are using the `thunder` Python library for working with neural data in Spark. The scripts in this repo also make installing and using Thunder easy. 
-#### Install and run
+#### Installing
 First, to install, from your home directory type
 ```
 thunder-janlelia install
@@ -70,6 +70,7 @@ This will clone a copy of Thunder into your home directory. To install to a diff
 ```
 thunder-janelia install -p <path_to_thunder>
 ```
+#### Running
 To start Spark with Thunder, type
 ```
 thunder-janelia start
