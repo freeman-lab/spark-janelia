@@ -10,7 +10,7 @@ Shell scripts and utilities for launching Spark and running applications (e.g. T
 These scripts automate many of the tasks and configurations needed to start and manage a Spark job.
 
 #### Initial setup
-SSH in to one of Janelia's cluster login nodes (see Janelia's [Scientific Computing](http://wiki.int.janelia.org/wiki/display/ScientificComputing/Janelia+Compute+Cluster) resources for more information).
+SSH in to one of Janelia's cluster login nodes (see [Scientific Computing](http://wiki.int.janelia.org/wiki/display/ScientificComputing/Janelia+Compute+Cluster) for more information).
 ```
 ssh login2.int.janelia.org
 ```
