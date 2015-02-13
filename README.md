@@ -33,7 +33,7 @@ While logged in to one of Janelia cluster's login nodes, submit a request to run
 ```
 spark-janelia -n <number_of_nodes>
 ```
-Each node has 16 cores and 100GB of RAM for Spark to use. You should target the number of nodes you request based on the size of the data you were working or the amount of neccessary computation (or both). A good rule of thumb is to use enough nodes so the total amount of RAM is about twice the total size of your data set.
+Each node has 16 cores and 100GB of RAM for Spark to use. You should target the number of nodes you request based on the size of the data you are working with or the amount of neccessary computation (or both). A good rule of thumb is to use enough nodes so the total amount of RAM is about twice the total size of your data set.
 
 Check the status of your request using the `qstat` command. When the status is listed as `r` (for "ready"), proceed.
 
