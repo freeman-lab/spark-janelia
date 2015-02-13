@@ -66,7 +66,7 @@ First, to install, from your home directory type
 ```
 thunder-janlelia install
 ```
-This will clone a copy of Thunder into your home directory. If you want to install to a different location, use
+This will clone a copy of Thunder into your home directory. To install to a different location, use
 ```
 thunder-janelia install -p <path_to_thunder>
 ```
