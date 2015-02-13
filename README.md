@@ -60,7 +60,7 @@ Where `submit_arguments` is a string of arguments you would normally pass to `sp
 
 ---
 ### Using Thunder
-Many of us at Janelia are using the `thunder` Python library for working with neural data in Spark. The scripts in this repo also make installing and using Thunder easy. 
+Many of us at Janelia are using the [Thunder](http://thunder-project.com/thunder/) library for working with neural data in Spark. The scripts in this repo also make installing and using Thunder easy. 
 #### Installing
 First, to install, from your home directory type
 ```
@@ -75,7 +75,7 @@ To start Spark with Thunder, type
 ```
 thunder-janelia start
 ```
-This will open an interactive shell with [Thunder](http://thunder-project.com/thunder/) functionality preloaded. See its project page for how to use this library in your data workflows and analyses.
+This will open an interactive shell with Thunder functionality preloaded. See its project page for how to use this library in your data workflows and analyses.
 
 If you want to grab the latest version, use
 ```
