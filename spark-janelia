@@ -80,7 +80,8 @@ def destroy(jobId = ''):
     jtree = ET.fromstring(status)[1]
     jobs = qtree.findall('job_list')
     jid = args.jobid or jobId
-    jid = int(jid)
+    if jid:
+        jid = int(jid)
     if len(jobs) == 0:
         print('\n')
         print >> sys.stderr, "No running jobs found"
