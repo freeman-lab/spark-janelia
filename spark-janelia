@@ -215,7 +215,9 @@ elif args.task == 'lsd':
     while( master == '' ):
         master = findMasterByJobId(jobId)
     master = 'spark://%s:7077' % master
-    print jobId, master
+    print('\n')
+    print('%-20s%s\n%-20s%s' % ( 'job id:', jobId, 'spark master:', master ) )
+    print('\n')
     submit(master)
     destroy(jobId)
 
