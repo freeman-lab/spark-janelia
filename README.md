@@ -101,7 +101,7 @@ Now, when starting either Spark or Thunder, add the `-i` flag, as in:
 spark-janelia start -i
 thunder-janlelia start -i
 ```
-Instead of opening a shell, this will launch an IPython Notebook server on the driver. You will see a website addressed printed next to `View your notebooks at...`. Go to this address in a web browser. Your browser will likely complain that the connection is not trusted; just ignore this warning and proceed.
+Instead of opening a shell, this will launch an IPython Notebook server on the driver. You will see a website addressed printed next to `View your notebooks at...`. Go to this address in a web browser. Your browser will complain that the connection is not trusted; just ignore and proceed.
 
 When prompted, enter the password you chose above. You should now have a graphical interface to the directory from which you launched the IPython Notebook server. From here you can create a new notebook or edit a previously-existing one.
 
