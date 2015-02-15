@@ -58,6 +58,14 @@ spark-janelia submit -s <submit_arguments>
 ```
 Where `submit_arguments` is a string of arguments you would normally pass to `spark-submit`, as described in the [Spark documentation](https://spark.apache.org/docs/1.2.0/submitting-applications.html).
 
+#### Running a Spark application with automatic shut down of the Spark cluster after completion
+If you want to run an application with unknown runtime
+it will be helpful to have the Spark cluster shut down automatically after completion of the application.
+```bash
+spark-janelia <args> lsd -s <submit_arguments>
+```
+will submit your application and delete the cluter job, once it has finished. `lsd` is short for `launch-submit-and-destroy` and the meaning of `submit_arguments` is along the lines of `spark-janelia submit`.
+
 ---
 ### Using Thunder
 Many of us at Janelia are using the [Thunder](http://thunder-project.com/thunder/) library for working with neural data in Spark. The scripts in this repo also make installing and using Thunder easy. 

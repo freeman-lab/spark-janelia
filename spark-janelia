@@ -6,46 +6,44 @@ import sys
 import argparse
 import subprocess
 import xml.etree.ElementTree as ET
+import time
+import multiprocessing
 
-parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
 
-parser.add_argument("task", choices=('launch', 'login', 'destroy', 'start', 'start-scala', 'submit'))
-parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
-parser.add_argument("-i", "--ipython", action="store_true")
-parser.add_argument("-v", "--version", choices=("1", "2", "3"), default="1", required=False)
-parser.add_argument("-j", "--jobid", type=int, default=None, required=False)
-parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
+def findMasterByJobId(jobId):
+    status = subprocess.check_output(['qstat', '-xml'])
+    master = ''
+    qtree = ET.fromstring(status)[0]
+    rjobs = qtree.findall(".//job_list[@state='running']")
+    for job in rjobs:
+        if not isSparkJob( job ):
+            continue
+        currMaster = job.find('queue_name').text.split('@')[1]
+        currJobId  = job.find('JB_job_number').text
+        if jobId == '' or currJobId == jobId:
+            master = currMaster
+            break
+    return master
 
-args = parser.parse_args()
 
-SPARKVERSIONS = {
-    '1': '/usr/local/spark-current',
-    '2': '/usr/local/spark-master',
-    '3': '/usr/local/spark-test'
-}
+def isSparkJob(job):
+    return job.find('jclass_name').text == version_short + '.default'
 
-SPARKVERSIONSSHORT = {
-    '1': 'spark',
-    '2': 'spark2',
-    '3': 'spark3'
-}
 
-version = SPARKVERSIONS[args.version]
-version_short = SPARKVERSIONSSHORT[args.version]
-
-if args.nnodes == 1:
-    raise Exception('Cannot start a Spark cluster with only 1 node, please request 2 or more.')
-
-if args.task == 'launch':
+def launch(sleepTime='86400'):
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
         os.mkdir(os.path.expanduser('~/sparklogs'))
 
-    output = subprocess.check_output(['qsub', '-jc', version_short, '-pe', version_short, str(args.nnodes), '-q', 'hadoop2', '-j', 'y', '-o', os.path.expanduser('~/sparklogs/'), '/sge/8.1.4/examples/jobs/sleeper.sh', '86400'])
+    output = subprocess.check_output(['qsub', '-jc', version_short, '-pe', version_short, str(args.nnodes), '-q', 'hadoop2', '-j', 'y', '-o', os.path.expanduser('~/sparklogs/'), '/sge/8.1.4/examples/jobs/sleeper.sh', sleepTime])
     print('\n')
     print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
     print('\n')
+    # Your job <jobId> ("Sleeper") has been submitted
+    jobId = output.split(' ')[2]
+    return jobId
 
-elif args.task == 'login':
+
+def login():
     status = subprocess.check_output(["qstat", "-xml"])
     qtree = ET.fromstring(status)[0]
     jtree = ET.fromstring(status)[1]
@@ -77,7 +75,8 @@ elif args.task == 'login':
             print >> sys.stderr, "No Spark job found, check status with qstat, or try a different jobid?"
             print('\n')
 
-elif args.task == 'destroy':
+
+def destroy(jobId ):
     status = subprocess.check_output(["qstat", "-xml"])
     qtree = ET.fromstring(status)[0]
     jtree = ET.fromstring(status)[1]
@@ -93,10 +92,9 @@ elif args.task == 'destroy':
             state = job.find('state').text
             jobid = job.find('JB_job_number').text
             if (jobclass == version_short + ".default") and (state == 'r'):
-                if args.jobid:
-                    if int(jobid) == args.jobid:
-                        output = subprocess.check_output(['qdel', jobid])
-                        deleted += 1
+                if jobId and jobid == jobId:
+                    output = subprocess.check_output(['qdel', jobid])
+                    deleted += 1
                 else:
                     output = subprocess.check_output(['qdel', jobid])
                     deleted += 1
@@ -109,8 +107,8 @@ elif args.task == 'destroy':
             print('Spark jobs successfully deleted')
             print('\n')
 
-elif args.task == 'start':
 
+def start():
     f = open(os.path.expanduser("~") + '/spark-master', 'r')
     master = f.readline().replace('\n','')
 
@@ -133,8 +131,8 @@ elif args.task == 'start':
     os.environ['MASTER'] = master
     os.system(version + '/bin/pyspark')
 
-elif args.task == 'start-scala':
 
+def startScala():
     os.environ['SPARK_HOME'] = version
 
     if os.getenv('PATH') is None:
@@ -145,17 +143,94 @@ elif args.task == 'start-scala':
     os.environ['MASTER'] = f.readline().replace('\n','')
     os.system(version + '/bin/spark-shell')
 
-elif args.task == 'submit':
 
+def submit(master = ''):
     os.environ['SPARK_HOME'] = version
 
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
 
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
-    f = open(os.path.expanduser("~") + '/spark-master', 'r')
-    master = f.readline().replace('\n','')
+    if master == '':
+        with open(os.path.expanduser("~") + '/spark-master', 'r') as f:
+            master = f.readline().replace('\n','')
     os.environ['MASTER'] = master
     os.system(version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs)
+
+
+def submitAndDestroy( master, jobId ):
+    submit(master)
+    destroy(jobId)
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
+                        
+    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd')
+                        
+    parser.add_argument("task", choices=choices)
+    parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
+    parser.add_argument("-i", "--ipython", action="store_true")
+    parser.add_argument("-v", "--version", choices=("1", "2", "3"), default="1", required=False)
+    parser.add_argument("-j", "--jobid", type=int, default=None, required=False)
+    parser.add_argument("-t", "--sleep_time", type=int, default=86400, required=False)
+    parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
+                        
+    args = parser.parse_args()
+                        
+    SPARKVERSIONS = {   
+        '1': '/usr/local/spark-current',
+        '2': '/usr/local/spark-master',
+        '3': '/usr/local/spark-test'
+    }                   
+                        
+    SPARKVERSIONSSHORT = {
+        '1': 'spark',   
+        '2': 'spark2',  
+        '3': 'spark3'   
+    }                   
+                        
+    version = SPARKVERSIONS[args.version]
+    version_short = SPARKVERSIONSSHORT[args.version]
+                        
+    if args.nnodes == 1:
+        raise Exception('Cannot start a Spark cluster with only 1 node, please request 2 or more.')
+                        
+    if args.task == 'launch':
+        launch(str(args.sleep_time))
+                        
+    elif args.task == 'login':
+        login()         
+                        
+    elif args.task == 'destroy':
+        destroy(args.jobid or '')
+                        
+                        
+    elif args.task == 'start':
+        start()         
+                        
+                        
+    elif args.task == 'start-scala':
+        startScala()   
+                        
+                        
+    elif args.task == 'submit':
+        submit()        
+                        
+                        
+    elif args.task == 'lsd':
+        jobId  = launch(str(args.sleep_time))
+        master = ''     
+        while( master == '' ):
+            master = findMasterByJobId(jobId)
+            time.sleep(1) # wait 1 second to avoid spamming the cluster
+        master = 'spark://%s:7077' % master
+        print('\n')     
+        print('%-20s%s\n%-20s%s' % ( 'job id:', jobId, 'spark master:', master ) )
+        print('\n')     
+        p = multiprocessing.Process(target=submitAndDestroy, args=(master, jobId))
+        p.start()       
+
+
 
 
