@@ -58,9 +58,9 @@ spark-janelia submit -s <submit_arguments>
 ```
 Where `submit_arguments` is a string of arguments you would normally pass to `spark-submit`, as described in the [Spark documentation](https://spark.apache.org/docs/1.2.0/submitting-applications.html).
 
-#### Running a spark application and delete cluster job after completion
-If you want to to run an application that with unknown runtime
-it will be helpful to have the cluster job delete after completion of the application.
+#### Running a Spark application with automatic shut down of the Spark cluster after completion
+If you want to run an application with unknown runtime
+it will be helpful to have the Spark cluster shut down automatically after completion of the application.
 ```bash
 spark-janelia <args> lsd -s <submit_arguments>
 ```
