@@ -132,7 +132,7 @@ def start():
     os.system(version + '/bin/pyspark')
 
 
-def start_scala():
+def startScala():
     os.environ['SPARK_HOME'] = version
 
     if os.getenv('PATH') is None:
@@ -211,7 +211,7 @@ if __name__ == "__main__":
                         
                         
     elif args.task == 'start-scala':
-        start_scala()   
+        startScala()   
                         
                         
     elif args.task == 'submit':
