@@ -227,7 +227,7 @@ if __name__ == "__main__":
         master = 'spark://%s:7077' % master
         print('\n')     
         print('%-20s%s\n%-20s%s' % ( 'job id:', jobId, 'spark master:', master ) )
-        print('\n')     
+        print('\n')
         p = multiprocessing.Process(target=submitAndDestroy, args=(master, jobId))
         p.start()       
 
