@@ -158,8 +158,24 @@ def submit(master = ''):
     os.system(version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs)
 
 
+def submitSSH(master = ''):
+    os.environ['SPARK_HOME'] = version
+
+    if os.getenv('PATH') is None:
+        os.environ['PATH'] = ""
+
+    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
+    if master == '':
+        with open(os.path.expanduser("~") + '/spark-master', 'r') as f:
+            master = f.readline().replace('\n','')
+    os.environ['MASTER'] = master
+    sparkCMD = version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs
+    sshCMD   = 'ssh %s' % master.lstrip('spark://').rstrip(':7077')
+    os.system( '%s %s' % ( sshCMD, sparkCMD ) )
+
+
 def submitAndDestroy( master, jobId ):
-    submit(master)
+    submitSSH(master)
     destroy(jobId)
 
 if __name__ == "__main__":
