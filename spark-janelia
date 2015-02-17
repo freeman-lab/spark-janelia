@@ -8,6 +8,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 import time
 import multiprocessing
+import traceback
 
 
 def findMasterByJobId(jobId):
@@ -176,8 +177,12 @@ def submitSSH(master = ''):
 
 
 def submitAndDestroy( master, jobId ):
-    submitSSH(master)
-    destroy(jobId)
+    try:
+        submitSSH(master)
+    except Exception as e:
+        print >> sys.stderr, traceback.format_exc()
+    finally:
+        destroy(jobId)
 
 if __name__ == "__main__":
 
