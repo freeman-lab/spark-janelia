@@ -43,7 +43,7 @@ def launch(sleepTime='86400'):
     return jobId
 
 
-def login():
+def login(jobId=''):
     status = subprocess.check_output(["qstat", "-xml"])
     qtree = ET.fromstring(status)[0]
     jtree = ET.fromstring(status)[1]
@@ -59,8 +59,8 @@ def login():
             state = job.find('state').text
             jobid = int(job.find('JB_job_number').text)
             if (jobclass == version_short + ".default") and (state == 'r'):
-                if args.jobid:
-                    if jobid == args.jobid:
+                if jobId:
+                    if jobid == jobId:
                         address = job.find('queue_name').text.split('@')[1]
                 else:
                     address = job.find('queue_name').text.split('@')[1]
@@ -216,7 +216,7 @@ if __name__ == "__main__":
         launch(str(args.sleep_time))
                         
     elif args.task == 'login':
-        login()         
+        login(args.jobid or '')         
                         
     elif args.task == 'destroy':
         destroy(args.jobid or '')
