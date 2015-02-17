@@ -8,6 +8,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 import time
 import multiprocessing
+import traceback
 
 
 def findMasterByJobId(jobId):
@@ -43,7 +44,7 @@ def launch(sleepTime='86400'):
     return jobId
 
 
-def login():
+def login(jobId=''):
     status = subprocess.check_output(["qstat", "-xml"])
     qtree = ET.fromstring(status)[0]
     jtree = ET.fromstring(status)[1]
@@ -59,8 +60,8 @@ def login():
             state = job.find('state').text
             jobid = int(job.find('JB_job_number').text)
             if (jobclass == version_short + ".default") and (state == 'r'):
-                if args.jobid:
-                    if jobid == args.jobid:
+                if jobId:
+                    if jobid == jobId:
                         address = job.find('queue_name').text.split('@')[1]
                 else:
                     address = job.find('queue_name').text.split('@')[1]
@@ -158,9 +159,30 @@ def submit(master = ''):
     os.system(version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs)
 
 
+def submitSSH(master = ''):
+    os.environ['SPARK_HOME'] = version
+
+    if os.getenv('PATH') is None:
+        os.environ['PATH'] = ""
+
+    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
+    if master == '':
+        with open(os.path.expanduser("~") + '/spark-master', 'r') as f:
+            master = f.readline().replace('\n','')
+    os.environ['MASTER'] = master
+    sparkCMD = version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs
+    sshCMD   = 'ssh'
+    host     = master.lstrip('spark://').rstrip(':7077')
+    subprocess.check_call( [ sshCMD, host, '%s' % sparkCMD ] )
+
+
 def submitAndDestroy( master, jobId ):
-    submit(master)
-    destroy(jobId)
+    try:
+        submitSSH(master)
+    except Exception as e:
+        print >> sys.stderr, traceback.format_exc()
+    finally:
+        destroy(jobId)
 
 if __name__ == "__main__":
 
@@ -200,7 +222,7 @@ if __name__ == "__main__":
         launch(str(args.sleep_time))
                         
     elif args.task == 'login':
-        login()         
+        login(args.jobid or '')         
                         
     elif args.task == 'destroy':
         destroy(args.jobid or '')
@@ -227,7 +249,7 @@ if __name__ == "__main__":
         master = 'spark://%s:7077' % master
         print('\n')     
         print('%-20s%s\n%-20s%s' % ( 'job id:', jobId, 'spark master:', master ) )
-        print('\n')     
+        print('\n')
         p = multiprocessing.Process(target=submitAndDestroy, args=(master, jobId))
         p.start()       
 
