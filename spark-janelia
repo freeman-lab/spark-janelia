@@ -173,7 +173,7 @@ def submitSSH(master = ''):
     sparkCMD = version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs
     sshCMD   = 'ssh'
     host     = master.lstrip('spark://').rstrip(':7077')
-    subprocess.call( [ sshCMD, host, '%s' % sparkCMD ] )
+    subprocess.check_call( [ sshCMD, host, '%s' % sparkCMD ] )
 
 
 def submitAndDestroy( master, jobId ):
