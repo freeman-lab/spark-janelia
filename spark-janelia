@@ -166,7 +166,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
                         
-    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd')
+    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in')
                         
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
@@ -205,18 +205,14 @@ if __name__ == "__main__":
     elif args.task == 'destroy':
         destroy(args.jobid or '')
                         
-                        
     elif args.task == 'start':
         start()         
-                        
                         
     elif args.task == 'start-scala':
         startScala()   
                         
-                        
     elif args.task == 'submit':
         submit()        
-                        
                         
     elif args.task == 'lsd':
         jobId  = launch(str(args.sleep_time))
@@ -231,6 +227,15 @@ if __name__ == "__main__":
         p = multiprocessing.Process(target=submitAndDestroy, args=(master, jobId))
         p.start()       
 
-
+    elif args.task == 'launch-in':
+        jobId = launch(str(args.sleep_time))
+        master = ''
+        while master == '':
+            master = findMasterByJobId(jobId)
+            time.sleep(1)
+            sys.stdout.write('.')
+            sys.stdout.flush()
+        print '\n\nspark master: {}\n'.format(master)
+        login()
 
 
