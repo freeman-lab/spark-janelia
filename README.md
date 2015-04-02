@@ -68,7 +68,7 @@ will submit your application and delete the cluter job, once it has finished. `l
 
 ---
 ### Using Thunder
-Many of us at Janelia are using the [Thunder](http://thunder-project.com/thunder/) library for working with neural data in Spark. The scripts in this repo also make installing and using Thunder easy. 
+Many of us at Janelia are using the [Thunder](http://thunder-project.org/) library for working with neural data in Spark. The scripts in this repo also make installing and using Thunder easy. 
 #### Installing
 First, to install, from your home directory type
 ```
