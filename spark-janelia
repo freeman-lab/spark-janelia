@@ -42,7 +42,6 @@ def launch(sleepTime='86400'):
     jobId = output.split(' ')[2]
     return jobId
 
-
 def login():
     status = subprocess.check_output(["qstat", "-xml"])
     qtree = ET.fromstring(status)[0]
@@ -158,6 +157,17 @@ def submit(master = ''):
     os.system(version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs)
 
 
+def launchAndWait():
+        jobId  = launch(str(args.sleep_time))
+        master = ''     
+        while( master == '' ):
+            master = findMasterByJobId(jobId)
+            time.sleep(1) # wait 1 second to avoid spamming the cluster
+            sys.stdout.write('.')
+            sys.stdout.flush()
+        return master
+
+
 def submitAndDestroy( master, jobId ):
     submit(master)
     destroy(jobId)
@@ -166,7 +176,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
                         
-    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd')
+    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in')
                         
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
@@ -205,25 +215,17 @@ if __name__ == "__main__":
     elif args.task == 'destroy':
         destroy(args.jobid or '')
                         
-                        
     elif args.task == 'start':
         start()         
-                        
                         
     elif args.task == 'start-scala':
         startScala()   
                         
-                        
     elif args.task == 'submit':
         submit()        
                         
-                        
     elif args.task == 'lsd':
-        jobId  = launch(str(args.sleep_time))
-        master = ''     
-        while( master == '' ):
-            master = findMasterByJobId(jobId)
-            time.sleep(1) # wait 1 second to avoid spamming the cluster
+        master = launchAndWait()
         master = 'spark://%s:7077' % master
         print('\n')     
         print('%-20s%s\n%-20s%s' % ( 'job id:', jobId, 'spark master:', master ) )
@@ -231,6 +233,9 @@ if __name__ == "__main__":
         p = multiprocessing.Process(target=submitAndDestroy, args=(master, jobId))
         p.start()       
 
-
+    elif args.task == 'launch-in':
+        master = launchAndWait()
+        print '\n\nspark master: {}\n'.format(master)
+        login()
 
 
