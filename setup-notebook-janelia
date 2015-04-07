@@ -23,6 +23,5 @@ source ~/.bash_profile
 echo -e "\n\n\n"
 echo "------------------------------------------------------------------------"
 echo "iPython notebook successfully set up!"
-echo "After starting a cluster, access at https://<ip address of driver>:9999"
 echo "------------------------------------------------------------------------"
 echo -e "\n\n\n"
