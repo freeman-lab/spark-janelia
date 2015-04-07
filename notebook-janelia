@@ -2,10 +2,6 @@
 
 cd ~
 ipython profile create nbserver
-mkdir certificates
-cd certificates
-openssl req -x509 -nodes -days 365 -subj "/C=XX/ST=XX/L=XX/O=XX/CN=XX" -newkey rsa:1024 -keyout mycert.pem -out mycert.pem
-python -c "from IPython.lib import passwd; print passwd()" > ~/.ipython/profile_nbserver/nbpasswd.txt
 
 echo "# Configuration file for ipython-notebook.
 c = get_config()
@@ -14,16 +10,11 @@ import os
 home = os.path.expanduser('~')
 
 # Notebook config
-c.NotebookApp.certfile = os.path.expanduser('~/certificates/mycert.pem')
-c.NotebookApp.keyfile = os.path.expanduser('~/certificates/mycert.pem')
 c.NotebookApp.ip = '*'
 c.NotebookApp.open_browser = False
 # It is a good idea to put it on a known, fixed port
 c.NotebookApp.port = 9999
-c.IPKernelApp.pylab = 'inline'
-
-PWDFILE=os.path.expanduser('~/.ipython/profile_nbserver/nbpasswd.txt')
-c.NotebookApp.password = open(PWDFILE).read().strip()" >> ~/.ipython/profile_nbserver/ipython_notebook_config.py
+c.IPKernelApp.pylab = 'inline' " >> ~/.ipython/profile_nbserver/ipython_notebook_config.py
 
 echo 'export IPYTHON_OPTS="notebook --profile=nbserver"' >> ~/.bash_profile
 
