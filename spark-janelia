@@ -111,7 +111,7 @@ def start():
     f = open(os.path.expanduser("~") + '/spark-master', 'r')
     master = f.readline().replace('\n','')
 
-    if args.notebook is True:
+    if args.ipython is True:
        os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
        notebook = master[8:][:-5]
        print('\n')
@@ -180,7 +180,7 @@ if __name__ == "__main__":
                         
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
-    parser.add_argument("-n", "--notebook", action="store_true")
+    parser.add_argument("-i", "--ipython", action="store_true")
     parser.add_argument("-v", "--version", choices=("1", "2", "3"), default="1", required=False)
     parser.add_argument("-j", "--jobid", type=int, default=None, required=False)
     parser.add_argument("-t", "--sleep_time", type=int, default=86400, required=False)
