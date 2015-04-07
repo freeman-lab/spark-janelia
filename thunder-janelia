@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description="setup and run thunder")
 
 parser.add_argument("task", choices=('install', 'update', 'start'), default='start')
 parser.add_argument("-v", "--sparkversion", type=str, default='1', required=False)
-parser.add_argument("-n", "--notebook", action="store_true")
+parser.add_argument("-i", "--ipython", action="store_true")
 parser.add_argument("-p", "--thunderpath", type=str, default='~/thunder', required=False)
 
 args = parser.parse_args()
@@ -69,7 +69,7 @@ if args.task == 'start':
     f = open(os.path.expanduser("~") + '/spark-master', 'r')
     master = f.readline().replace('\n','')
 
-    if args.notebook is True:
+    if args.ipython is True:
        os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
        notebook = master[8:][:-5]
        print('\n')
