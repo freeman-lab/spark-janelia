@@ -14,6 +14,12 @@ SSH in to one of Janelia's cluster login nodes (see [Scientific Computing](http:
 ```
 ssh login2.int.janelia.org
 ```
+If you have never done so, set up keyless SSH
+```
+ssh-keygen -t dsa
+cd .ssh
+cat id_dsa.pub >> authorized_keys
+```
 Navigate to a location in your home directory where you will store these scripts, then call
 ```
 git clone https://github.com/freeman-lab/spark-janelia
