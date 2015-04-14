@@ -29,6 +29,10 @@ if args.task == 'install':
        os.environ['PATH'] = ""
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
 
+    if os.getenv('PYTHONPATH') is None:
+        os.environ['PYTHONPATH'] = ""
+    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/python/"
+
     if os.path.exists(location):
     	print('\n')
         print >> sys.stderr, "thunder already exists, run with 'update' to update installation"
