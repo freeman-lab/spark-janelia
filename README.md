@@ -105,7 +105,7 @@ When running Spark in Python, the IPython notebook is a fantastic way to run ana
 
 First, as a one time operation, call this script
 ```
-notebook-janelia
+setup-notebook-janelia
 ```
 This will configure your IPython Notebook settings to be compatible with Janelia's cluster. The only thing you need to do is provide a password when prompted. This password will allow you to make a secure connection to the IPython Notebook server.
 
