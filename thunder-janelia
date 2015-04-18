@@ -9,17 +9,17 @@ import subprocess
 parser = argparse.ArgumentParser(description="setup and run thunder")
 
 parser.add_argument("task", choices=('install', 'update', 'start'), default='start')
-parser.add_argument("-v", "--sparkversion", type=str, default='1', required=False)
+parser.add_argument("-v", "--sparkversion", type=str, choices=('stable', 'rc', 'test'), default='stable', required=False)
 parser.add_argument("-i", "--ipython", action="store_true")
 parser.add_argument("-p", "--thunderpath", type=str, default='~/thunder', required=False)
 
 args = parser.parse_args()
 
-SPARKVERSIONS = {
-    '1': '/usr/local/spark-current',
-    '2': '/usr/local/spark-master',
-    '3': '/usr/local/spark-test'
-}
+SPARKVERSIONS = {   
+    'stable': '/usr/local/spark-current/',
+    'rc': '/usr/local/spark-rc/',
+    'test': '/usr/local/spark-test'
+} 
 
 location = os.path.realpath(os.path.expanduser(args.thunderpath))
 
