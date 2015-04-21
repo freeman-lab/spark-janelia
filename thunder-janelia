@@ -75,8 +75,10 @@ if args.task == 'start':
 
     if args.ipython is True:
        os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
+       status = master[8:][:-5]
        print('\n')
        print('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999')
+       print('View the status of your cluster at http://' + status + ':8080')
        print('\n')
 
     os.environ['SPARK_HOME'] = SPARKVERSIONS[args.sparkversion]
