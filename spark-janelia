@@ -70,7 +70,8 @@ def login():
                 os.remove(filename)
             os.system("echo 'spark://'" + address + ":7077 >> " + os.path.expanduser("~") + "/spark-master")
             #subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'sandy'])
-            subprocess.check_call(['ssh', address])
+            subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'interactive=true'])
+            #subprocess.check_call(['ssh', address])
         else:
             print('\n')
             print >> sys.stderr, "No Spark job found, check status with qstat, or try a different jobid?"
