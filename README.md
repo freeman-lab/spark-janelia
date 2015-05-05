@@ -17,6 +17,9 @@ ssh login2.int.janelia.org
 If you have never done so, set up keyless SSH
 ```
 ssh-keygen -t dsa
+```
+Accept all of the default settings by hitting "return" three times. Then continue with
+```
 cd .ssh
 cat id_dsa.pub >> authorized_keys
 ```
