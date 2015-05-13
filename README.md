@@ -17,6 +17,9 @@ ssh login2.int.janelia.org
 If you have never done so, set up keyless SSH
 ```
 ssh-keygen -t dsa
+```
+Accept all of the default settings by hitting "return" three times. Then continue with
+```
 cd .ssh
 cat id_dsa.pub >> authorized_keys
 ```
@@ -105,7 +108,7 @@ When running Spark in Python, the IPython notebook is a fantastic way to run ana
 
 First, as a one time operation, call this script
 ```
-notebook-janelia
+setup-notebook-janelia
 ```
 This will configure your IPython Notebook settings to be compatible with Janelia's cluster. The only thing you need to do is provide a password when prompted. This password will allow you to make a secure connection to the IPython Notebook server.
 
