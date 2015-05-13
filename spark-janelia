@@ -39,7 +39,6 @@ def launch(sleepTime='86400'):
     print('\n')
     print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
     print('\n')
-    # Your job <jobId> ("Sleeper") has been submitted
     jobId = output.split(' ')[2]
     return jobId
 
