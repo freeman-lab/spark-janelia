@@ -27,18 +27,18 @@ def findMasterByJobId(jobId):
 
 
 def isSparkJob(job):
-    return job.find('jclass_name').text == version_short + '.default'
+    return job.find('jclass_name').text == jobname + '.default'
 
 
 def launch(sleepTime='86400'):
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
         os.mkdir(os.path.expanduser('~/sparklogs'))
 
-    output = subprocess.check_output(['qsub', '-jc', version_short, '-pe', version_short, str(args.nnodes), '-q', 'hadoop2', '-j', 'y', '-o', os.path.expanduser('~/sparklogs/'), '/sge/current/examples/jobs/sleeper.sh', sleepTime])
+    startupCommand = '/groups/freeman/home/freemanj11/startspark.sh'
+    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-q', 'hadoop2', '-j', 'y', '-o', os.path.expanduser('~/sparklogs/'), startupCommand, version])
     print('\n')
     print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
     print('\n')
-    # Your job <jobId> ("Sleeper") has been submitted
     jobId = output.split(' ')[2]
     return jobId
 
@@ -54,10 +54,10 @@ def login():
     else:
         address = None
         for job in jobs:
-            jobclass = job.find('jclass_name').text
+            procname = job.find('JB_name').text
             state = job.find('state').text
             jobid = int(job.find('JB_job_number').text)
-            if (jobclass == version_short + ".default") and (state == 'r'):
+            if (procname == 'startspark.sh') and (state == 'r'):
                 if args.jobid:
                     if jobid == args.jobid:
                         address = job.find('queue_name').text.split('@')[1]
@@ -68,7 +68,9 @@ def login():
             if os.path.exists(filename):
                 os.remove(filename)
             os.system("echo 'spark://'" + address + ":7077 >> " + os.path.expanduser("~") + "/spark-master")
-            subprocess.check_call(['ssh', address])
+            #subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'sandy'])
+            subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'interactive=true'])
+            #subprocess.check_call(['ssh', address])
         else:
             print('\n')
             print >> sys.stderr, "No Spark job found, check status with qstat, or try a different jobid?"
@@ -87,10 +89,10 @@ def destroy(jobId ):
     else:
         deleted = 0
         for job in jobs:
-            jobclass = job.find('jclass_name').text
+            procname = job.find('JB_name').text
             state = job.find('state').text
             jobid = job.find('JB_job_number').text
-            if (jobclass == version_short + ".default") and (state == 'r'):
+            if (procname == 'startspark.sh') and (state == 'r'):
                 if jobId and jobid == jobId:
                     output = subprocess.check_output(['qdel', jobid])
                     deleted += 1
@@ -181,7 +183,7 @@ if __name__ == "__main__":
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
     parser.add_argument("-i", "--ipython", action="store_true")
-    parser.add_argument("-v", "--version", choices=("1", "2", "3"), default="1", required=False)
+    parser.add_argument("-v", "--version", choices=("stable", "rc", "test"), default="stable", required=False)
     parser.add_argument("-j", "--jobid", type=int, default=None, required=False)
     parser.add_argument("-t", "--sleep_time", type=int, default=86400, required=False)
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
@@ -189,19 +191,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
                         
     SPARKVERSIONS = {   
-        '1': '/usr/local/spark-current',
-        '2': '/usr/local/spark-master',
-        '3': '/usr/local/spark-test'
+        'stable': '/usr/local/spark-current/',
+        'rc': '/usr/local/spark-rc/',
+        'test': '/usr/local/spark-test'
     }                   
                         
-    SPARKVERSIONSSHORT = {
-        '1': 'spark',   
-        '2': 'spark2',  
-        '3': 'spark3'   
-    }                   
-                        
+    SPARKJOBS = {
+        'stable': 'spark',   
+        'rc': 'spark-rc',  
+        'test': 'spark-test'   
+    }    
+
     version = SPARKVERSIONS[args.version]
-    version_short = SPARKVERSIONSSHORT[args.version]
+    jobname = SPARKJOBS[args.version]
                         
     if args.nnodes == 1:
         raise Exception('Cannot start a Spark cluster with only 1 node, please request 2 or more.')

@@ -5,21 +5,44 @@ import glob
 import sys
 import argparse
 import subprocess
+import xml.etree.ElementTree as ET
 
 parser = argparse.ArgumentParser(description="setup and run thunder")
 
 parser.add_argument("task", choices=('install', 'update', 'start'), default='start')
-parser.add_argument("-v", "--sparkversion", type=str, default='1', required=False)
+parser.add_argument("-v", "--sparkversion", type=str, choices=('stable', 'rc', 'test'), default='stable', required=False)
 parser.add_argument("-i", "--ipython", action="store_true")
 parser.add_argument("-p", "--thunderpath", type=str, default='~/thunder', required=False)
 
 args = parser.parse_args()
 
-SPARKVERSIONS = {
-    '1': '/usr/local/spark-current',
-    '2': '/usr/local/spark-master',
-    '3': '/usr/local/spark-test'
-}
+# try to infer the spark version form the jobclass reporrted in qstat
+xmlVersion = None
+try:
+    qstat = subprocess.check_output(["qstat", "-xml"])
+    tree = ET.fromstring(qstat)
+    jobs = tree.find('queue_info').findall('job_list')
+    for job in jobs:
+        jobName = job.find('JB_name').text
+        jobClass = job.find('jclass_name').text
+        jobState = job.find('state').text
+        if jobName == 'startspark.sh' and jobState == 'r':
+            version = jobClass.split('spark')[1].split('.')[0]
+            if version[0] == '-':
+                xmlVersion = version[1:]
+                break
+            elif version == '':
+                xmlVersion = 'stable'
+                break
+except:
+    xmlVersion = args.sparkversion
+sparkVersion = xmlVersion if xmlVersion else args.sparkversion
+
+SPARKVERSIONS = {   
+    'stable': '/usr/local/spark-current/',
+    'rc': '/usr/local/spark-rc/',
+    'test': '/usr/local/spark-test/'
+} 
 
 location = os.path.realpath(os.path.expanduser(args.thunderpath))
 
@@ -75,12 +98,13 @@ if args.task == 'start':
 
     if args.ipython is True:
        os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
-       notebook = master[8:][:-5]
+       status = master[8:][:-5]
        print('\n')
-       print('View your notebooks at http://' + notebook + ':9999')
+       print('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999')
+       print('View the status of your cluster at http://' + status + ':8080')
        print('\n')
 
-    os.environ['SPARK_HOME'] = SPARKVERSIONS[args.sparkversion]
+    os.environ['SPARK_HOME'] = SPARKVERSIONS[sparkVersion]
 
     if os.getenv('PYTHONPATH') is None:
         os.environ['PYTHONPATH'] = ""
