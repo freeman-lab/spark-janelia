@@ -121,3 +121,23 @@ if args.task == 'start':
     
     os.environ['MASTER'] = master
     os.system(location + '/python/bin/thunder')
+
+if args.task == 'submit':
+    
+    f = open(os.path.expanduser("~") + '/spark-master', 'r')
+    master = f.readline().replace('\n','')
+
+    os.environ['SPARK_HOME'] = SPARKVERSIONS[args.sparkversion]
+
+    if os.getenv('PYTHONPATH') is None:
+        os.environ['PYTHONPATH'] = ""
+    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/python/"
+  
+    if os.getenv('PATH') is None:
+        os.environ['PATH'] = ""
+
+    os.environ['PATH'] = os.environ['PATH'] + ":" + location + "/python/bin"
+    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
+    
+    os.environ['MASTER'] = master
+    os.system(location + '/python/bin/thunder-submit')
