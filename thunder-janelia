@@ -13,6 +13,7 @@ parser.add_argument("task", choices=('install', 'update', 'start', 'submit'), de
 parser.add_argument("-v", "--sparkversion", type=str, choices=('stable', 'rc', 'test'), default='stable', required=False)
 parser.add_argument("-i", "--ipython", action="store_true")
 parser.add_argument("-p", "--thunderpath", type=str, default='~/thunder', required=False)
+parser.add_argument("-f", "--file", type=str, default='', required=False)
 
 args = parser.parse_args()
 
@@ -140,4 +141,4 @@ if args.task == 'submit':
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
     
     os.environ['MASTER'] = master
-    os.system(location + '/python/bin/thunder-submit')
+    os.system(location + '/python/bin/thunder-submit' + ' ' + args.file)
