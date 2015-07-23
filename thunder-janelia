@@ -55,7 +55,7 @@ if args.task == 'install':
 
     if os.getenv('PYTHONPATH') is None:
         os.environ['PYTHONPATH'] = ""
-    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/python/"
+    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/"
 
     if os.path.exists(location):
     	print('\n')
@@ -63,7 +63,7 @@ if args.task == 'install':
         print('\n')
     else:
     	os.system('git clone git://github.com/freeman-lab/thunder.git ' + location)
-    	subprocess.call(location + '/python/bin/build')
+    	subprocess.call(location + '/bin/build')
     	print('\n')
     	print("thunder installed to " + args.thunderpath)
     	print('\n')
@@ -76,7 +76,7 @@ if args.task == 'update':
 
     if os.getenv('PYTHONPATH') is None:
         os.environ['PYTHONPATH'] = ""
-    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/python/"
+    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/"
 
     cwd = os.getcwd()
     if not os.path.exists(location):
@@ -86,7 +86,7 @@ if args.task == 'update':
     else:
 	    os.chdir(location)
 	    os.system('git pull')
-	    subprocess.call(location + '/python/bin/build')
+	    subprocess.call(location + '/bin/build')
 	    os.chdir(cwd)
 	    print('\n')
 	    print("thunder is up-to-date and rebuilt")
@@ -109,7 +109,7 @@ if args.task == 'start':
 
     if os.getenv('PYTHONPATH') is None:
         os.environ['PYTHONPATH'] = ""
-    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/python/"
+    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/"
   
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
@@ -117,11 +117,11 @@ if args.task == 'start':
     if os.getenv('IPYTHON') is None:
        os.environ['IPYTHON'] = "1"
 
-    os.environ['PATH'] = os.environ['PATH'] + ":" + location + "/python/bin"
+    os.environ['PATH'] = os.environ['PATH'] + ":" + location + "/bin"
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
     
     os.environ['MASTER'] = master
-    os.system(location + '/python/bin/thunder')
+    os.system(location + '/bin/thunder')
 
 if args.task == 'submit':
     
@@ -132,13 +132,13 @@ if args.task == 'submit':
 
     if os.getenv('PYTHONPATH') is None:
         os.environ['PYTHONPATH'] = ""
-    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/python/"
+    os.environ['PYTHONPATH'] = os.environ['PYTHONPATH'] + ":" + location + "/"
   
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
 
-    os.environ['PATH'] = os.environ['PATH'] + ":" + location + "/python/bin"
+    os.environ['PATH'] = os.environ['PATH'] + ":" + location + "/bin"
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
     
     os.environ['MASTER'] = master
-    os.system(location + '/python/bin/thunder-submit' + ' ' + args.file)
+    os.system(location + '/bin/thunder-submit' + ' ' + args.file)
