@@ -13,22 +13,40 @@ Try to indicate a few times that you are most likely to use the cluster, and wha
 
 
 #### @jwittenbach
+- *Time*:
+- *Usage*:
 
 #### @sofroniewn
+- *Time*:
+- *Usage*:
 
 #### @andrewosh
+- *Time*:
+- *Usage*:
 
 #### @hanslovsky
+- *Time*:
+- *Usage*:
 
 #### @boazmohar
+- *Time*:
+- *Usage*:
 
 #### @d-v-b
+- *Time*:
+- *Usage*:
 
 #### @mikarubi
+- *Time*:
+- *Usage*:
 
 #### @justinplittle
+- *Time*:
+- *Usage*:
 
 #### @avinashpujala
+- *Time*:
+- *Usage*:
 
 #### @thefreemanlab
 - *Time*: 10pm-3am
