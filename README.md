@@ -8,7 +8,7 @@ Scripts, utilities, and community for launching Spark on the Janelia Research Ce
 ### Organizing usage
 Check out the [teamwork](TEAMWORK.md) page, where we help coordinate usage among users.
 
-
+---
 ### Using Spark
 These scripts automate many of the tasks required to start and manage a Spark job.
 
