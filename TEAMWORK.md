@@ -31,5 +31,5 @@ Try to indicate a few times that you are most likely to use the cluster, and wha
 #### @avinashpujala
 
 #### @thefreemanlab
-- Time: 10pm-3am
-- Usage: 5-30 nodes
+- *Time*: 10pm-3am
+- *Usage*: 5-30 nodes
