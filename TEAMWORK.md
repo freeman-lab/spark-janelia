@@ -2,7 +2,7 @@
 
 This is to help organize usage of spark on Janelia's cluster. So long as cluster resources remain limited, we need to work together as a team!
 
-How it works:
+#### How it works:
 
 Try to indicate a few times that you are most likely to use it, and what your usage typically is (number of nodes). You can specify a particular day, or, more likely, a particular time of day (morning, afternoon, evening). List that information below your handle in this document.
 
@@ -12,24 +12,24 @@ Try to indicate a few times that you are most likely to use it, and what your us
 - If you want to reserve a really special one-time time slot (e.g. right before an experiment), make an issue letting everyone know.
 
 
-@jwittenbach
+#### @jwittenbach
 
-@sofroniewn
+#### @sofroniewn
 
-@andrewosh
+#### @andrewosh
 
-@hanslovsky
+#### @hanslovsky
 
-@boazmohar
+#### @boazmohar
 
-@d-v-b
+#### @d-v-b
 
-@mikarubi
+#### @mikarubi
 
-@justinplittle
+#### @justinplittle
 
-@avinashpujala
+#### @avinashpujala
 
-@thefreemanlab
+#### @thefreemanlab
 - Time: 10pm-3am
 - Usage: 5-30 nodes
