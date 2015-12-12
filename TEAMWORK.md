@@ -1,6 +1,6 @@
 # Teamwork!
 
-This is to help organize usage of spark on Janelia's cluster. So long as cluster resources remain limited, we need to do this as a team!
+This is to help organize usage of spark on Janelia's cluster. So long as cluster resources remain limited, we need to work together as a team!
 
 How it works:
 
@@ -27,3 +27,7 @@ How it works:
 @justinplittle
 
 @avinashpujala
+
+@thefreemanlab
+- Time: 10pm-3am
+- Usage: 5-30 nodes
