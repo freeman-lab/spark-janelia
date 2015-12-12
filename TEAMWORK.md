@@ -8,8 +8,8 @@ Try to indicate a few times that you are most likely to use the cluster, and wha
 
 - If you need to add yourself to this list, let us know in the chatroom and we'll make you a contributor.
 - If you need to update *your own* time, just modify this document.
-- If you want to "swap" times with someone, i.e. ask them to change their usual time, make an issue letting them know. Ask nicely!
-- If you want to reserve a really special one-time time slot (e.g. right before an experiment), make an issue letting everyone know.
+- If you want to "swap" times with someone, i.e. ask them to change their usual time, make an issue. Ask nicely!
+- If you want to reserve a special one-time time slot (e.g. for an experiment), make an issue letting everyone know.
 
 
 #### @jwittenbach
