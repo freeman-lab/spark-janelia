@@ -4,7 +4,7 @@ This is to help organize usage of spark on Janelia's cluster. So long as cluster
 
 #### How it works
 
-Everyone should try to indicate a few times of day that you are most likely to use the cluster (rough hours), and what your usage typically is (number of nodes). List that information below your handle in this document.
+Everyone should try to indicate a few times of day that they are most likely to use the cluster (rough hours), and what typical usage  is (number of nodes). List that information below your handle in this document.
 
 - If you need to add yourself to this list, let us know in the chatroom and we'll make you a contributor.
 - If you need to update *your own* time, just modify this document.
