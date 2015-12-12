@@ -15,6 +15,9 @@ Everyone should try to indicate a few times of day that they are most likely to 
 - *Time*:
 - *Usage*:
 
+#### @nvladimus
+- *Time*:
+- *Usage*:
 
 #### @jwittenbach
 - *Time*:
