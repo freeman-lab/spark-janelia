@@ -1,6 +1,6 @@
 # Teamwork!
 
-This is to help organize usage of spark on Janelia's cluster. So long as cluster resources remain limited, we need to work together as a team!
+This is to help organize usage of spark on Janelia's cluster. So long as cluster resources remain limited, and we haven't migrated fully to cloud compute, we need to work together as a team!
 
 #### How it works:
 
