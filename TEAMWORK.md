@@ -11,6 +11,10 @@ Everyone should try to indicate a few times of day that they are most likely to 
 - If you want to "swap" times with someone, i.e. ask them to change their usual time, make an issue. Ask nicely!
 - If you want to reserve a special one-time time slot (e.g. for an experiment), make an issue letting everyone know.
 
+#### @allwong
+- *Time*:
+- *Usage*:
+
 
 #### @jwittenbach
 - *Time*:
