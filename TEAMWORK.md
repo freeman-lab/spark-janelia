@@ -16,8 +16,8 @@ Everyone should try to indicate a few times of day that they are most likely to 
 - *Usage*:
 
 #### @nvladimus
-- *Time*:
-- *Usage*:
+- *Time*: 10 am - 4 pm (6 hrs), on Mondays and Tuesdays
+- *Usage*: 15 nodes
 
 #### @jwittenbach
 - *Time*:
