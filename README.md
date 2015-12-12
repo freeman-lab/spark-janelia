@@ -5,6 +5,9 @@ Scripts, utilities, and community for launching Spark on the Janelia Research Ce
 [![Join the chat at https://gitter.im/freeman-lab/spark-janelia](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/freeman-lab/spark-janelia?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ---
+### Organizing usage
+Check out the [teamwork](TEAMWORK.md) page, where we help coordinate usage among users.
+
 
 ### Using Spark
 These scripts automate many of the tasks required to start and manage a Spark job.
