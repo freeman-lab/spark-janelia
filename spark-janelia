@@ -69,6 +69,7 @@ def login():
                 os.remove(filename)
             os.system("echo 'spark://'" + address + ":7077 >> " + os.path.expanduser("~") + "/spark-master")
             #subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'sandy'])
+            #subprocess.call(['qlogin', '-pe', 'batch', '32'])
             subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'interactive=true'])
             #subprocess.check_call(['ssh', address])
         else:
@@ -115,9 +116,10 @@ def start():
 
     if args.ipython is True:
        os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
-       notebook = master[8:][:-5]
+       address = master[8:][:-5]
        print('\n')
-       print('View your notebooks at http://' + notebook + ':9999')
+       print('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999')
+       print('View the status of your cluster at http://' + address + ':8080')
        print('\n')
 
     os.environ['SPARK_HOME'] = version
