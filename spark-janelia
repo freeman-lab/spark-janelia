@@ -68,10 +68,7 @@ def login():
             if os.path.exists(filename):
                 os.remove(filename)
             os.system("echo 'spark://'" + address + ":7077 >> " + os.path.expanduser("~") + "/spark-master")
-            #subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'sandy'])
-            #subprocess.call(['qlogin', '-pe', 'batch', '32'])
             subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'interactive=true'])
-            #subprocess.check_call(['ssh', address])
         else:
             print('\n')
             print >> sys.stderr, "No Spark job found, check status with qstat, or try a different jobid?"
@@ -114,7 +111,11 @@ def start():
     f = open(os.path.expanduser("~") + '/spark-master', 'r')
     master = f.readline().replace('\n','')
 
-    if args.ipython is True:
+    if args.notebook is True or args.ipython is True:
+       if os.getenv('IPYTHON') is None:
+          os.environ['IPYTHON'] = "1"
+    
+    if args.notebook is True:
        os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
        address = master[8:][:-5]
        print('\n')
@@ -126,9 +127,6 @@ def start():
 
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
-
-    if os.getenv('IPYTHON') is None:
-       os.environ['IPYTHON'] = "1"
 
     os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
     os.environ['MASTER'] = master
@@ -185,6 +183,7 @@ if __name__ == "__main__":
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
     parser.add_argument("-i", "--ipython", action="store_true")
+    parser.add_argument("-b", "--notebook", action="store_true")
     parser.add_argument("-v", "--version", choices=("stable", "rc", "test"), default="stable", required=False)
     parser.add_argument("-j", "--jobid", type=int, default=None, required=False)
     parser.add_argument("-t", "--sleep_time", type=int, default=86400, required=False)
