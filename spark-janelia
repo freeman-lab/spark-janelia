@@ -156,7 +156,11 @@ def submit(master = ''):
         with open(os.path.expanduser("~") + '/spark-master', 'r') as f:
             master = f.readline().replace('\n','')
     os.environ['MASTER'] = master
-    os.system(version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs)
+
+    # ssh into master and then run spark-submit
+    currentPath = os.getcwd();
+    command = 'ssh ' + master[8:14] +  ' "cd ' + currentPath + '; ' + version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs + '"'
+    os.system(command)
 
 
 def launchAndWait():
