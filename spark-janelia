@@ -156,7 +156,11 @@ def submit(master = ''):
         with open(os.path.expanduser("~") + '/spark-master', 'r') as f:
             master = f.readline().replace('\n','')
     os.environ['MASTER'] = master
-    os.system(version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs)
+
+    # ssh into master and then run spark-submit
+    currentPath = os.getcwd();
+    command = 'ssh ' + master[8:14] +  ' "cd ' + currentPath + '; ' + version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs + '"'
+    os.system(command)
 
 
 def launchAndWait():
@@ -167,7 +171,7 @@ def launchAndWait():
             time.sleep(1) # wait 1 second to avoid spamming the cluster
             sys.stdout.write('.')
             sys.stdout.flush()
-        return master
+        return master, jobId
 
 
 def submitAndDestroy( master, jobId ):
@@ -228,7 +232,7 @@ if __name__ == "__main__":
         submit()        
                         
     elif args.task == 'lsd':
-        master = launchAndWait()
+        master, jobId = launchAndWait()
         master = 'spark://%s:7077' % master
         print('\n')     
         print('%-20s%s\n%-20s%s' % ( 'job id:', jobId, 'spark master:', master ) )
@@ -237,7 +241,7 @@ if __name__ == "__main__":
         p.start()       
 
     elif args.task == 'launch-in':
-        master = launchAndWait()
+        master, jobId = launchAndWait()
         print '\n\nspark master: {}\n'.format(master)
         login()
 
