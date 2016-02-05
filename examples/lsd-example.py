@@ -1,5 +1,5 @@
 # run using:
-# spark-janelia -n 3 lsd -s test_spark_batchmode.py
+# spark-janelia -n 3 lsd -s lsd-example.py
 # runs with 3 nodes
 from pyspark import SparkConf, SparkContext
 
