@@ -173,6 +173,12 @@ def launchAndWait():
             sys.stdout.flush()
         return master, jobId
 
+def update():
+    currentdir = os.getcwd()
+    scriptdir = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(scriptdir)
+    os.system('git pull origin master')
+    os.chdir(currentdir)
 
 def submitAndDestroy( master, jobId ):
     submit(master)
@@ -182,7 +188,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
                         
-    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in')
+    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'update')
                         
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
@@ -244,5 +250,8 @@ if __name__ == "__main__":
         master, jobId = launchAndWait()
         print '\n\nspark master: {}\n'.format(master)
         login()
+
+    elif args.task == 'update':
+        update()
 
 
