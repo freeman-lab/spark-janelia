@@ -76,7 +76,7 @@ it will be helpful to have the Spark cluster shut down automatically after compl
 ```bash
 spark-janelia <args> lsd -s <submit_arguments>
 ```
-will submit your application and delete the cluter job, once it has finished. `lsd` is short for `launch-submit-and-destroy` and the meaning of `submit_arguments` is along the lines of `spark-janelia submit`.
+will submit your application and delete the cluter job, once it has finished. `lsd` is short for `launch-submit-and-destroy` and the meaning of `submit_arguments` is along the lines of `spark-janelia submit`. For an example of how to set up a Python script for this workflow, see the example in `examples/lsd-example.py`.
 
 ---
 ### Using Thunder
