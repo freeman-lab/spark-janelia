@@ -1,5 +1,7 @@
 # Spark Janelia
 
+[![Join the chat at https://gitter.im/freeman-lab/spark-janelia](https://badges.gitter.im/freeman-lab/spark-janelia.svg)](https://gitter.im/freeman-lab/spark-janelia?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Scripts, utilities, and community for launching Spark on the Janelia Research Center cluster. We maintain a chatroom on gitter if you have any questions.
 
 [![Join the chat at https://gitter.im/freeman-lab/spark-janelia](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/freeman-lab/spark-janelia?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
