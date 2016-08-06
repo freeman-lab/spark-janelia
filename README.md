@@ -1,10 +1,6 @@
 # Spark Janelia
 
-Scripts, utilities, and community for launching Spark on the Janelia Research Center cluster. We maintain a chatroom on gitter if you have any questions.
-
----
-### Organizing usage
-Check out the [teamwork](TEAMWORK.md) page, where we help coordinate usage among users.
+Scripts, utilities, and community for launching Spark on the Janelia Research Center cluster. If you have questions you can come hang out in the public freeman lab [chatroom](https://gitter.im/freeman-lab/discussion) on gitter (or #thefreemanlab on freenode).
 
 ---
 ### Using Spark
@@ -77,48 +73,20 @@ spark-janelia <args> lsd -s <submit_arguments>
 will submit your application and delete the cluter job, once it has finished. `lsd` is short for `launch-submit-and-destroy` and the meaning of `submit_arguments` is along the lines of `spark-janelia submit`. For an example of how to set up a Python script for this workflow, see the example in `examples/lsd-example.py`.
 
 ---
-### Using Thunder
-Many of us at Janelia are using the [Thunder](http://thunder-project.org/) library for working with neural data in Spark. The scripts in this repo also make installing and using Thunder easy. 
-#### Installing
-First, to install, from your home directory type
-```
-thunder-janelia install
-```
-This will clone a copy of Thunder into your home directory. To install to a different location, use
-```
-thunder-janelia install -p <path_to_thunder>
-```
-#### Running
-To start Spark with Thunder, type
-```
-thunder-janelia start
-```
-This will open an interactive shell with Thunder functionality preloaded. See its project page for how to use this library in your data workflows and analyses.
-
-If you want to grab the latest version, use
-```
-thunder-janelia update
-```
-If you have your own version of Thunder (e.g. because you have cloned its repo and are modifying its source code), you can specify a version to run by specifying the location directly
-```
-thunder-janelia start -p <path_to_thunder>
-```
----
-### Using the IPython notebook
-When running Spark in Python, the IPython notebook is a fantastic way to run analyses and inspect and visualize results. These scripts make it easy to set up the notebook for use on Janelia's cluster.
+### Using the Jupyter notebook
+When running Spark in Python, the Jupyter notebook is a great way to run analyses and inspect and visualize results. These scripts make it easy to set up the notebook for use on Janelia's cluster.
 
 First, as a one time operation, call this script
 ```
 setup-notebook-janelia
 ```
-This will configure your IPython Notebook settings to be compatible with Janelia's cluster. The only thing you need to do is provide a password when prompted. This password will allow you to make a secure connection to the IPython Notebook server.
+This will configure your Jupyer Notebook settings to be compatible with Janelia's cluster.
 
-Now, when starting either Spark or Thunder, add the `-i` flag, as in:
+Now, when starting Spark, add the `-b` flag, as in:
 ```
-spark-janelia start -i
-thunder-janelia start -i
+spark-janelia start -b
 ```
-Instead of opening a shell, this will launch an IPython Notebook server on the driver. You will see a website addressed printed next to `View your notebooks at...`. Go to this address in a web browser. Your browser will complain that the connection is not trusted; just ignore and proceed.
+Instead of opening a shell, this will launch a Jupyter Notebook server on the driver. You will see a website address printed next to `View your notebooks at...`. Go to this address in a web browser. Your browser will complain that the connection is not trusted; just ignore and proceed.
 
 When prompted, enter the password you chose above. You should now have a graphical interface to the directory from which you launched the IPython Notebook server. From here you can create a new notebook or edit a previously-existing one.
 
@@ -136,4 +104,4 @@ You can check that these nodes have successfully been released with the `qstat` 
 
 ---
 ## Questions and comments
-Many Spark users at Janelia can be found in the [Gitter chat rooom](https://gitter.im/freeman-lab/spark-janelia?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) for this repository. If you have questions or comments, or just want to join the conversation, please drop in!
+Many Spark users at Janelia hang out in the freeman lab [gitter chat rooom](https://gitter.im/freeman-lab/discussion). If you have questions or comments, or just want to join the conversation, please drop by!
