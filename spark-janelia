@@ -1,4 +1,4 @@
-#!/usr/local/python-2.7.6/bin/python2.7
+#!/misc/local/python-2.7.11/bin/python2.7
 
 import os
 import glob
@@ -128,7 +128,7 @@ def start():
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
 
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
+    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/misc/python-2.7.11/bin"
     os.environ['MASTER'] = master
     os.system(version + '/bin/pyspark')
 
@@ -139,7 +139,7 @@ def startScala():
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
 
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
+    os.environ['PATH'] = os.environ['PATH'] + ":" + "/misc/local/python-2.7.11/bin"
     f = open(os.path.expanduser("~") + '/spark-master', 'r')
     os.environ['MASTER'] = f.readline().replace('\n','')
     os.system(version + '/bin/spark-shell')
@@ -151,7 +151,7 @@ def submit(master = ''):
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
 
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
+    os.environ['PATH'] = os.environ['PATH'] + ":" + "/misc/local/python-2.7.11/bin"
     if master == '':
         with open(os.path.expanduser("~") + '/spark-master', 'r') as f:
             master = f.readline().replace('\n','')
@@ -202,9 +202,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
                         
     SPARKVERSIONS = {   
-        'stable': '/usr/local/spark-current/',
-        'rc': '/usr/local/spark-rc/',
-        'test': '/usr/local/spark-test'
+        'stable': '/misc/local/spark-current/',
+        'rc': '/misc/local/spark-rc/',
+        'test': '/misc/local/spark-test'
     }                   
                         
     SPARKJOBS = {
