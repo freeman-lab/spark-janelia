@@ -30,7 +30,7 @@ export PATH=/path/to/spark-janelia:$PATH
 ```
 While doing this, also add this line to point your PATH to a recent version of Python:
 ```
-export PATH=/usr/local/python-2.7.6/bin/:$PATH
+export PATH=/usr/local/python-2.7.11/bin:$PATH
 ```
 If you want to continue in the same session, source your profile with `source ~/.bash_profile`.
 
