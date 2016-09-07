@@ -35,7 +35,7 @@ def launch(sleepTime='86400'):
         os.mkdir(os.path.expanduser('~/sparklogs'))
 
     startupCommand = '/groups/freeman/home/freemanj11/startspark.sh'
-    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-q', 'hadoop2', '-j', 'y', '-o', os.path.expanduser('~/sparklogs/'), startupCommand, version])
+    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-o', os.path.expanduser('~/sparklogs/'), startupCommand, version])
     print('\n')
     print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
     print('\n')
@@ -112,11 +112,11 @@ def start():
     master = f.readline().replace('\n','')
 
     if args.notebook is True or args.ipython is True:
-       if os.getenv('IPYTHON') is None:
-          os.environ['IPYTHON'] = "1"
+       os.environ['PYSPARK_DRIVER_PYTHON'] = 'ipython'
     
     if args.notebook is True:
-       os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
+       os.environ['PYSPARK_DRIVER_PYTHON'] = 'jupyter'
+       os.environ['PYSPARK_DRIVER_PYTHON_OPTS'] = 'notebook --ip "*" --port 9999 --no-browser'
        address = master[8:][:-5]
        print('\n')
        print('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999')

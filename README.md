@@ -30,7 +30,7 @@ export PATH=/path/to/spark-janelia:$PATH
 ```
 While doing this, also add this line to point your PATH to a recent version of Python:
 ```
-export PATH=/usr/local/python-2.7.6/bin/:$PATH
+export PATH=/usr/local/python-2.7.11/bin/:$PATH
 ```
 If you want to continue in the same session, source your profile with `source ~/.bash_profile`.
 
@@ -74,13 +74,7 @@ will submit your application and delete the cluter job, once it has finished. `l
 
 ---
 ### Using the Jupyter notebook
-When running Spark in Python, the Jupyter notebook is a great way to run analyses and inspect and visualize results. These scripts make it easy to set up the notebook for use on Janelia's cluster.
-
-First, as a one time operation, call this script
-```
-setup-notebook-janelia
-```
-This will configure your Jupyer Notebook settings to be compatible with Janelia's cluster.
+When running Spark in Python, the Jupyter notebook is a great way to run analyses and inspect and visualize results. This requires no extra setup, simple add the `-b` flag when starting Python: 
 
 Now, when starting Spark, add the `-b` flag, as in:
 ```
@@ -93,6 +87,16 @@ When prompted, enter the password you chose above. You should now have a graphic
 To shut down the IPython Notebook server, return to the terminal where the server is running and type `Ctrl+C+C`.
 
 NOTE: You can't run Spark jobs in multiple notebooks at once. If you start one notebook, then start another, nothing will execute in the second one until you shutdown the first one (by clicking the shutdown button in the notebook browser).
+
+If you would like to use the Jupyter notebook for non-Spark related work, we also provide a script for configuring the notebook for general use on the cluster. As a one time operation, call this script
+```
+setup-notebook-janelia
+```
+
+This will configure your Jupyer Notebook settings to be compatible with Janelia's cluster. Then, from any node, you can start a server with
+```
+jupyter notebook
+```
 
 ---
 ### Shutting down
