@@ -123,14 +123,11 @@ def start():
        print('View the status of your cluster at http://' + address + ':8080')
        print('\n')
 
-    os.environ['SPARK_HOME'] = version
 
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
 
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/misc/python-2.7.11/bin"
-    os.environ['MASTER'] = master
-    os.system(version + '/bin/pyspark')
+    os.system(version + '/bin/pyspark --master='+master)
 
 
 def startScala():
@@ -194,7 +191,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
     parser.add_argument("-i", "--ipython", action="store_true")
     parser.add_argument("-b", "--notebook", action="store_true")
-    parser.add_argument("-v", "--version", choices=("stable", "rc", "test"), default="stable", required=False)
+    parser.add_argument("-v", "--version", choices=("stable", "rc", "test", "2"), default="stable", required=False)
     parser.add_argument("-j", "--jobid", type=int, default=None, required=False)
     parser.add_argument("-t", "--sleep_time", type=int, default=86400, required=False)
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
@@ -204,13 +201,15 @@ if __name__ == "__main__":
     SPARKVERSIONS = {   
         'stable': '/misc/local/spark-current/',
         'rc': '/misc/local/spark-rc/',
-        'test': '/misc/local/spark-test'
+        'test': '/misc/local/spark-test',
+        '2': '/misc/local/spark-2'
     }                   
                         
     SPARKJOBS = {
         'stable': 'spark',   
         'rc': 'spark-rc',  
-        'test': 'spark-test'   
+        'test': 'spark-test',   
+        '2': 'spark-2'
     }    
 
     version = SPARKVERSIONS[args.version]
