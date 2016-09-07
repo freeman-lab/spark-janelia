@@ -1,4 +1,4 @@
-#!/usr/local/python-2.7.6/bin/python2.7
+#!/misc/local/python-2.7.11/bin/python2.7
 
 import os
 import glob
@@ -35,7 +35,7 @@ def launch(sleepTime='86400'):
         os.mkdir(os.path.expanduser('~/sparklogs'))
 
     startupCommand = '/groups/freeman/home/freemanj11/startspark.sh'
-    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-q', 'hadoop2', '-j', 'y', '-o', os.path.expanduser('~/sparklogs/'), startupCommand, version])
+    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-o', os.path.expanduser('~/sparklogs/'), startupCommand, version])
     print('\n')
     print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
     print('\n')
@@ -112,25 +112,22 @@ def start():
     master = f.readline().replace('\n','')
 
     if args.notebook is True or args.ipython is True:
-       if os.getenv('IPYTHON') is None:
-          os.environ['IPYTHON'] = "1"
+       os.environ['PYSPARK_DRIVER_PYTHON'] = 'ipython'
     
     if args.notebook is True:
-       os.environ['IPYTHON_OPTS'] = "notebook --profile=nbserver"
+       os.environ['PYSPARK_DRIVER_PYTHON'] = 'jupyter'
+       os.environ['PYSPARK_DRIVER_PYTHON_OPTS'] = 'notebook --ip "*" --port 9999 --no-browser'
        address = master[8:][:-5]
        print('\n')
        print('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999')
        print('View the status of your cluster at http://' + address + ':8080')
        print('\n')
 
-    os.environ['SPARK_HOME'] = version
 
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
 
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
-    os.environ['MASTER'] = master
-    os.system(version + '/bin/pyspark')
+    os.system(version + '/bin/pyspark --master='+master)
 
 
 def startScala():
@@ -139,7 +136,7 @@ def startScala():
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
 
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
+    os.environ['PATH'] = os.environ['PATH'] + ":" + "/misc/local/python-2.7.11/bin"
     f = open(os.path.expanduser("~") + '/spark-master', 'r')
     os.environ['MASTER'] = f.readline().replace('\n','')
     os.system(version + '/bin/spark-shell')
@@ -151,7 +148,7 @@ def submit(master = ''):
     if os.getenv('PATH') is None:
         os.environ['PATH'] = ""
 
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/usr/local/python-2.7.6/bin"
+    os.environ['PATH'] = os.environ['PATH'] + ":" + "/misc/local/python-2.7.11/bin"
     if master == '':
         with open(os.path.expanduser("~") + '/spark-master', 'r') as f:
             master = f.readline().replace('\n','')
@@ -194,7 +191,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
     parser.add_argument("-i", "--ipython", action="store_true")
     parser.add_argument("-b", "--notebook", action="store_true")
-    parser.add_argument("-v", "--version", choices=("stable", "rc", "test"), default="stable", required=False)
+    parser.add_argument("-v", "--version", choices=("stable", "rc", "test", "2"), default="stable", required=False)
     parser.add_argument("-j", "--jobid", type=int, default=None, required=False)
     parser.add_argument("-t", "--sleep_time", type=int, default=86400, required=False)
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
@@ -202,15 +199,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
                         
     SPARKVERSIONS = {   
-        'stable': '/usr/local/spark-current/',
-        'rc': '/usr/local/spark-rc/',
-        'test': '/usr/local/spark-test'
+        'stable': '/misc/local/spark-current/',
+        'rc': '/misc/local/spark-rc/',
+        'test': '/misc/local/spark-test',
+        '2': '/misc/local/spark-2'
     }                   
                         
     SPARKJOBS = {
         'stable': 'spark',   
         'rc': 'spark-rc',  
-        'test': 'spark-test'   
+        'test': 'spark-test',   
+        '2': 'spark-2'
     }    
 
     version = SPARKVERSIONS[args.version]

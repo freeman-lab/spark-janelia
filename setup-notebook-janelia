@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 cd ~
-ipython profile create nbserver
+jupyter notebook --generate-config
 
-echo "# Configuration file for ipython-notebook.
+echo "# Configuration file for jupyter-notebook.
 c = get_config()
 
 import os
@@ -13,15 +13,12 @@ home = os.path.expanduser('~')
 c.NotebookApp.ip = '*'
 c.NotebookApp.open_browser = False
 # It is a good idea to put it on a known, fixed port
-c.NotebookApp.port = 9999
-c.IPKernelApp.pylab = 'inline' " >> ~/.ipython/profile_nbserver/ipython_notebook_config.py
-
-echo 'export IPYTHON_OPTS="notebook --profile=nbserver"' >> ~/.bash_profile
+c.NotebookApp.port = 9999" >> ~/.jupyter/jupyter_notebook_config.py
 
 source ~/.bash_profile
 
 echo -e "\n\n\n"
 echo "------------------------------------------------------------------------"
-echo "iPython notebook successfully set up!"
+echo "Jupyter notebook successfully set up!"
 echo "------------------------------------------------------------------------"
 echo -e "\n\n\n"
