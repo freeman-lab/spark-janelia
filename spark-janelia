@@ -57,7 +57,7 @@ def login():
             procname = job.find('JB_name').text
             state = job.find('state').text
             jobid = int(job.find('JB_job_number').text)
-            if (procname == 'startspark.sh') and (state == 'r'):
+            if (procname == 'spark-cluster') and (state == 'r'):
                 if args.jobid:
                     if jobid == args.jobid:
                         address = job.find('queue_name').text.split('@')[1]
@@ -90,7 +90,7 @@ def destroy(jobId ):
             procname = job.find('JB_name').text
             state = job.find('state').text
             jobid = job.find('JB_job_number').text
-            if (procname == 'startspark.sh') and (state == 'r'):
+            if (procname == 'spark-cluster') and (state == 'r'):
                 if jobId and jobid == jobId:
                     output = subprocess.check_output(['qdel', jobid])
                     deleted += 1
