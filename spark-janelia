@@ -34,8 +34,8 @@ def launch(sleepTime='86400'):
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
         os.mkdir(os.path.expanduser('~/sparklogs'))
 
-    startupCommand = '/groups/freeman/home/freemanj11/startspark.sh'
-    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-o', os.path.expanduser('~/sparklogs/'), startupCommand, version])
+    startupCommand = '/misc/local/spark-versions/bin/' + launchscript
+    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-o', os.path.expanduser('~/sparklogs/'), startupCommand])
     print('\n')
     print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
     print('\n')
@@ -55,9 +55,10 @@ def login():
         address = None
         for job in jobs:
             procname = job.find('JB_name').text
+            jclass = job.find('jclass_name').text
             state = job.find('state').text
             jobid = int(job.find('JB_job_number').text)
-            if (procname == 'spark-cluster') and (state == 'r'):
+            if (jclass[:5] == 'spark') and (state == 'r'):
                 if args.jobid:
                     if jobid == args.jobid:
                         address = job.find('queue_name').text.split('@')[1]
@@ -88,9 +89,10 @@ def destroy(jobId ):
         deleted = 0
         for job in jobs:
             procname = job.find('JB_name').text
+            jclass = job.find('jclass_name').text
             state = job.find('state').text
             jobid = job.find('JB_job_number').text
-            if (procname == 'spark-cluster') and (state == 'r'):
+            if (jclass[:5] == 'spark') and (state == 'r'):
                 if jobId and jobid == jobId:
                     output = subprocess.check_output(['qdel', jobid])
                     deleted += 1
@@ -212,8 +214,15 @@ if __name__ == "__main__":
         '2': 'spark-2'
     }    
 
+    SPARKLAUNCHSCRIPTS = {
+        'stable': 'start-cluster.sh',
+        'rc': 'start-rc-cluster.sh',
+        '2': 'start-2-cluster.sh'
+    }
+
     version = SPARKVERSIONS[args.version]
     jobname = SPARKJOBS[args.version]
+    launchscript = SPARKLAUNCHSCRIPTS[args.version]
                         
     if args.nnodes == 1:
         raise Exception('Cannot start a Spark cluster with only 1 node, please request 2 or more.')
