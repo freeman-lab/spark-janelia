@@ -148,8 +148,9 @@ def login():
                 if args.jobid:
                     if jobid == args.jobid:
                         address = job.find('queue_name').text.split('@')[1]
-                else:
+                elif procname == 'master':
                     address = job.find('queue_name').text.split('@')[1]
+                    break
         if address:
             filename = os.path.expanduser('~/spark-master')
             if os.path.exists(filename):
