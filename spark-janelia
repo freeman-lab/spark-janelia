@@ -58,7 +58,7 @@ def login():
             jclass = job.find('jclass_name').text
             state = job.find('state').text
             jobid = int(job.find('JB_job_number').text)
-            if (jclass[:5] == 'spark') and (state == 'r'):
+            if jclass and (jclass[:5] == 'spark') and (state == 'r'):
                 if args.jobid:
                     if jobid == args.jobid:
                         address = job.find('queue_name').text.split('@')[1]
