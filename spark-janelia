@@ -121,10 +121,12 @@ def startworker(sparktype, masterjobid, runtime):
         sparktype = "-test"
     if sparktype == "2":
         sparktype = "-2"
-    if runtime != "default":
+    if runtime != 86400:
+        print runtime
         command = "qsub -jc sparkflex.worker{} -N W{} -l hadoop_exclusive=1,h_rt={}".format(sparktype,masterjobid,runtime)
     else:
         command = "qsub -jc sparkflex.worker{} -N W{}".format(sparktype,masterjobid)
+        print command
     os.system(command)
 
 
@@ -266,15 +268,94 @@ def update():
     os.system('git pull origin master')
     os.chdir(currentdir)
 
+def findworker(masterjobid):
+    rawout = getqstat()
+    jobid = ""
+    workername = "W{}".format(masterjobid)
+    workerlist = {}
+    for i in range(len(rawout)):
+        unpack = rawout[i]
+        jobid = str(unpack[u'JB_job_number'])
+        if "sparkflex.worker" in str(unpack[u'jclass_name']) and workername in str(unpack[u'JB_name']):
+            workerlist[jobid] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
+    return workerlist
+
+def stopworker(masterjobid, terminatew, workerlist, skipcheckstop):
+    workername = "W{}".format(masterjobid)
+    rawout = getqstat()
+    jobtokill = ""
+    statuses = {}
+    for i in range(len(rawout)):
+        unpack=rawout[i]
+        jobid=str(unpack[u'JB_job_number'])
+        if 'sparkflex.worker' in str(unpack[u'jclass_name']) and str(masterjobid) in str(unpack[u'JB_name']):
+            statuses[jobid] = str(unpack[u'@state'])
+    if "pending" in statuses.values() and not skipcheckstop:
+        terminatew = raw_input("Terminate waiting job(s) first? (y/n) ")
+
+    for wjobid in statuses.keys():
+        if statuses[wjobid] == 'pending' and terminatew == 'y':
+            jobtokill = wjobid
+            break
+        elif statuses[wjobid] == 'running' and not skipcheckstop:
+            jobtokill = selectionlist(workerlist, 'worker')
+            break
+        else:
+            jobtokill = wjobid
+            break
+    try:
+        if jobtokill != "":
+            command = "qdel {}".format(jobtokill)
+            os.system(command)
+            time.sleep(3)
+    except:
+
+        print "No running or waiting workers found corresponding to Master job {}".format(masterjobid)
+        traceback.print_exc()
+        sys.exit()
+    return terminatew
+
+def checkstop(inval, jobtype):
+    if jobtype == "master":
+        checkstop = raw_input("Stop master with job id {} (y/n):".format(inval))
+    else:
+        checkstop = raw_input("Remove {} workers? (y/n):".format(inval))
+    if checkstop != "y":
+        print "No workers will be removed."
+        sys.exit()
+    else:
+        return True
+
+def selectionlist(joblist, jobtype):
+    i = 0 
+    selectionlist = {}
+    print "Select {} to kill from list below:".format(jobtype)
+    for jobid in joblist.keys():
+        i = i + 1 
+        host, status = joblist[jobid]
+        selectionlist[i] = jobid
+        print "{}) Host: {} JobID: {} Status: {}".format(i, host, jobid, status)
+    while True:
+        selection = int(raw_input("Selection? "))
+        if selection <= i:
+            jobid = selectionlist[selection]
+            skipcheckstop = True
+            break
+        else:
+            print "Invalid selection."
+    return jobid
+
 def submitAndDestroy( master, jobId ):
     submit(master)
     destroy(jobId)
 
 if __name__ == "__main__":
 
+    skipcheckstop = False
+
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
                         
-    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'update')
+    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'update', 'add-workers', 'remove-workers')
                         
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
@@ -284,6 +365,7 @@ if __name__ == "__main__":
     parser.add_argument("-j", "--jobid", type=int, default=None, required=False)
     parser.add_argument("-t", "--sleep_time", type=int, default=86400, required=False)
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
+    parser.add_argument("-f", "--force", action="store_true")
                         
     args = parser.parse_args()
                         
@@ -311,9 +393,13 @@ if __name__ == "__main__":
     jobname = SPARKJOBS[args.version]
     launchscript = SPARKLAUNCHSCRIPTS[args.version]
                         
-    if args.nnodes == 1:
+    if args.nnodes == 1 and args.task == 'launch':
         raise Exception('Cannot start a Spark cluster with only 1 node, please request 2 or more.')
                         
+    if args.force == True:
+        print "hunh?"
+        skipcheckstop = True
+
     if args.task == 'launch':
         launch(str(args.sleep_time))
                         
@@ -349,4 +435,15 @@ if __name__ == "__main__":
     elif args.task == 'update':
         update()
 
+    elif args.task == 'add-workers':
+        for node in range(args.nnodes):
+            startworker(args.version, str(args.jobid), args.sleep_time)
+
+    elif args.task == 'remove-workers':
+        print args.force
+        terminatew = ""
+        jobtype = "worker"
+        for node in range(args.nnodes):
+            workerlist = findworker(str(args.jobid))
+            terminatew = stopworker(str(args.jobid), terminatew, workerlist, skipcheckstop)
 
