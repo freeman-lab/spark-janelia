@@ -49,18 +49,6 @@ def getqstat():
                 alljobs = alljobs + templist
     return alljobs
 
-#def launch(sleepTime='86400'):
-#    if not os.path.exists(os.path.expanduser('~/sparklogs')):
-#        os.mkdir(os.path.expanduser('~/sparklogs'))
-#
-#    startupCommand = '/misc/local/spark-versions/bin/' + launchscript
-#    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-o', os.path.expanduser('~/sparklogs/'), startupCommand])
-#    print('\n')
-#    print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
-#    print('\n')
-#    jobId = output.split(' ')[2]
-#    return jobId
-
 def launch(runtime):
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
         os.mkdir(os.path.expanduser('~/sparklogs'))
@@ -397,7 +385,6 @@ if __name__ == "__main__":
         raise Exception('Cannot start a Spark cluster with only 1 node, please request 2 or more.')
                         
     if args.force == True:
-        print "hunh?"
         skipcheckstop = True
 
     if args.task == 'launch':
@@ -440,7 +427,6 @@ if __name__ == "__main__":
             startworker(args.version, str(args.jobid), args.sleep_time)
 
     elif args.task == 'remove-workers':
-        print args.force
         terminatew = ""
         jobtype = "worker"
         for node in range(args.nnodes):

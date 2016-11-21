@@ -39,7 +39,8 @@ While logged in to one of Janelia cluster's login nodes, submit a request to run
 ```
 spark-janelia launch -n <number_of_nodes>
 ```
-Each node has 16 cores and 100GB of RAM for Spark to use. You should target the number of nodes you request based on the size of the data you are working with or the amount of neccessary computation (or both). A good rule of thumb is to use enough nodes so the total amount of RAM is about twice the total size of your data set. Check the status of your request using the `qstat` command. When the status is listed as `r` (for "ready"), proceed.
+This will start a master, then <number_of_nodes> workers. 
+Each node has 15 cores and 75GB of RAM for Spark to use. You should target the number of nodes you request based on the size of the data you are working with or the amount of neccessary computation (or both). A good rule of thumb is to use enough nodes so the total amount of RAM is about twice the total size of your data set. Check the status of your request using the `qstat` command. When the status is listed as `r` (for "ready"), proceed.
 
 Every Spark cluster has a unique node designated as the "driver" from which all computations are initiated. To log in to the driver for your Spark cluster, use:
 ```
@@ -71,6 +72,19 @@ it will be helpful to have the Spark cluster shut down automatically after compl
 spark-janelia <args> lsd -s <submit_arguments>
 ```
 will submit your application and delete the cluter job, once it has finished. `lsd` is short for `launch-submit-and-destroy` and the meaning of `submit_arguments` is along the lines of `spark-janelia submit`. For an example of how to set up a Python script for this workflow, see the example in `examples/lsd-example.py`.
+
+#### Adding nodes to a running cluster
+To add nodes to your Spark cluster:
+```
+spark-janelia -n <NUM_NODES> -j <JOBIDofMASTER> add-workers
+```
+
+#### Removing workers from a running cluster
+To remove nodes from a Spark cluster:
+```
+spark-janelia -j <JOBIDofMASTER> -n <NUM_NODES> [-f, --force] remove-workers
+```
+By default the command will present a list of nodes to choose from. With the `-f` flag, it will remove the number of nodes requested arbitrarily. 
 
 ---
 ### Using the Jupyter notebook
