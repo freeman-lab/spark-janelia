@@ -49,6 +49,18 @@ def getqstat():
                 alljobs = alljobs + templist
     return alljobs
 
+def launchorig(sleepTime='86400'):
+    if not os.path.exists(os.path.expanduser('~/sparklogs')):
+        os.mkdir(os.path.expanduser('~/sparklogs'))
+
+    startupCommand = '/misc/local/spark-versions/bin/' + launchscript
+    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-o', os.path.expanduser('~/sparklogs/'), startupCommand])
+    print('\n')
+    print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
+    print('\n')
+    jobId = output.split(' ')[2]
+    return jobId
+
 def launch(runtime):
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
         os.mkdir(os.path.expanduser('~/sparklogs'))
@@ -343,7 +355,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
                         
-    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'update', 'add-workers', 'remove-workers')
+    choices = ('launch', 'launchall', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'update', 'add-workers', 'remove-workers')
                         
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
@@ -390,6 +402,9 @@ if __name__ == "__main__":
     if args.task == 'launch':
         launch(str(args.sleep_time))
                         
+    if args.task == 'launchall':
+        launchorig(str(args.sleep_time))
+
     elif args.task == 'login':
         login()         
                         
