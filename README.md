@@ -39,8 +39,14 @@ While logged in to one of Janelia cluster's login nodes, submit a request to run
 ```
 spark-janelia launch -n <number_of_nodes>
 ```
-This will start a master, then <number_of_nodes> workers. 
+This will start a master, then <number_of_nodes> workers. Each worker will run as a separate job, which means that the cluster will be available with as many nodes out of the requested number that can be scheduled immediately. Further nodes will come online as slots become available. 
+
 Each node has 15 cores and 75GB of RAM for Spark to use. You should target the number of nodes you request based on the size of the data you are working with or the amount of neccessary computation (or both). A good rule of thumb is to use enough nodes so the total amount of RAM is about twice the total size of your data set. Check the status of your request using the `qstat` command. When the status is listed as `r` (for "ready"), proceed.
+
+```
+spark-janelia launchall -n <number_of_nodes>
+```
+This will launch a cluster in the old method, where all nodes will need to be available in order fo the cluster to launch. 
 
 Every Spark cluster has a unique node designated as the "driver" from which all computations are initiated. To log in to the driver for your Spark cluster, use:
 ```
