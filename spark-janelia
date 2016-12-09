@@ -26,6 +26,22 @@ def findMasterByJobId(jobId):
             break
     return master
 
+def findmaster():
+    rawout = getqstat()
+    jobid = "" 
+    masterlist = {}
+    for i in range(len(rawout)):
+        unpack = rawout[i]
+        jobid = str(unpack[u'JB_job_number'])
+        if "sparkflex" in str(unpack[u'jclass_name']) and "master" in str(unpack[u'JB_name']):
+            masterlist[jobid] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
+    if len(masterlist.keys()) != 0:
+        return masterlist
+    else:   
+        print "No masters found. If deleting workers alone, please use Master's Job ID."
+        sys.exit()
+
+
 def isSparkJob(job):
     return job.find('jclass_name').text == jobname + '.default'
 
@@ -305,8 +321,7 @@ def stopworker(masterjobid, terminatew, workerlist, skipcheckstop):
             break
     try:
         if jobtokill != "":
-            command = "qdel {}".format(jobtokill)
-            os.system(command)
+            qdeljob(jobtokill)
             time.sleep(3)
     except:
 
@@ -314,6 +329,11 @@ def stopworker(masterjobid, terminatew, workerlist, skipcheckstop):
         traceback.print_exc()
         sys.exit()
     return terminatew
+
+def qdeljob(jobid):
+    command = "qdel {}".format(jobid)
+    os.system(command)
+
 
 def checkstop(inval, jobtype):
     if jobtype == "master":
@@ -345,6 +365,27 @@ def selectionlist(joblist, jobtype):
             print "Invalid selection."
     return jobid
 
+def qdelmaster(masterjobid, skipcheckstop):
+    jobtype = "master"
+    workername = "W{}".format(masterjobid)
+    if not skipcheckstop:
+         skipcheckstop = checkstop(masterjobid,jobtype)
+    if skipcheckstop:
+        try:
+            qdeljob(masterjobid)
+        except:
+            print "Master with job id {} not found".format(masterjobid)
+            sys.exit(1)
+        try:
+            qdeljob(workername)
+        except:
+            print "Workers for master with job id {} failed to stop".format(masterjobid)
+            sys.exit(1)
+    else:
+        print "As requested, master not stopped."
+        sys.exit(0)
+
+
 def submitAndDestroy( master, jobId ):
     submit(master)
     destroy(jobId)
@@ -355,7 +396,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
                         
-    choices = ('launch', 'launchall', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'update', 'add-workers', 'remove-workers')
+    choices = ('launch', 'launchall', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'update', 'add-workers', 'remove-workers', 'stopcluster')
                         
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
@@ -447,4 +488,13 @@ if __name__ == "__main__":
         for node in range(args.nnodes):
             workerlist = findworker(str(args.jobid))
             terminatew = stopworker(str(args.jobid), terminatew, workerlist, skipcheckstop)
-
+    
+    elif args.task == 'stopcluster':
+        try:
+            args.jobid 
+            masterjobid = args.jobid
+        except NameError:
+            masterlist = findmaster()
+            masterjobid = selectionlist(masterlist,'master')
+            skipcheckstop = True
+        qdelmaster(masterjobid, skipcheckstop)
