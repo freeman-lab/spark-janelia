@@ -35,6 +35,8 @@ def findmaster():
         jobid = str(unpack[u'JB_job_number'])
         if "sparkflex" in str(unpack[u'jclass_name']) and "master" in str(unpack[u'JB_name']):
             masterlist[jobid] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
+        elif "spark.default" or "spark-2" or "spark-rc" in str(unpack[u'jclass_name']):
+            masterlist[jobid] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
     if len(masterlist.keys()) != 0:
         return masterlist
     else:   
@@ -490,10 +492,9 @@ if __name__ == "__main__":
             terminatew = stopworker(str(args.jobid), terminatew, workerlist, skipcheckstop)
     
     elif args.task == 'stopcluster':
-        try:
-            args.jobid 
+        if args.jobid is not None:
             masterjobid = args.jobid
-        except NameError:
+        else: 
             masterlist = findmaster()
             masterjobid = selectionlist(masterlist,'master')
             skipcheckstop = True
