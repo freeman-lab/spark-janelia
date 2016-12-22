@@ -436,9 +436,6 @@ if __name__ == "__main__":
     jobname = SPARKJOBS[args.version]
     launchscript = SPARKLAUNCHSCRIPTS[args.version]
                         
-    if args.nnodes == 1 and args.task == 'launch':
-        raise Exception('Cannot start a Spark cluster with only 1 node, please request 2 or more.')
-                        
     if args.force == True:
         skipcheckstop = True
 
