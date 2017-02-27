@@ -430,6 +430,7 @@ if __name__ == "__main__":
         'stable': 'start-cluster.sh',
         'rc': 'start-rc-cluster.sh',
         '2': 'start-2-cluster.sh'
+        'test': 'start-2-cluster.sh'
     }
 
     version = SPARKVERSIONS[args.version]
