@@ -410,6 +410,7 @@ if __name__ == "__main__":
 	SPARKLAUNCHSCRIPTS = {
 		'stable': 'start-cluster.sh',
 		'rc': 'start-rc-cluster.sh',
+		'test': 'start-test-cluster.sh',
 		'2': 'start-2-cluster.sh'
 	}
 
