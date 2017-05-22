@@ -79,18 +79,20 @@ def launchorig(sleepTime='86400'):
 
 def launchall(runtime):
     sparktype = args.version
+    #In LSF 1 slot = 1 core, + 16 for master
+    slots = 16 + args.nnodes*16
     if sparktype == "stable": 
         sparktype = "current"
-    if runtime is None:
-        options = "-N cluster -n {}".format(args.nnodes)
+    if runtime == "None":
+        options = "-n {}".format(slots)
     else:
-        options = "-N cluster -n {} -W {}".format(args.nnodes,runtime)
+        options = "-n {} -W {}".format(slots,runtime)
     #bsub requires argument for command, but the esub replaces it automatically
     output = subprocess.check_output(["bsub -a \"sparkbatch({})\" {} commandstring".format(sparktype,options)], shell=True)
     print('\n')
-    print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
+    print 'Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots)
     print('\n')
-    jobID = rawout[0].output(" ")[1].lstrip("<").rstrip(">")
+    jobID = output[1].lstrip("<").rstrip(">")
     return jobID
 
         
