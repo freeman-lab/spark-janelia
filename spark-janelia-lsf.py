@@ -5,26 +5,10 @@ import glob
 import sys
 import argparse
 import subprocess
-import xml.etree.ElementTree as ET
 import time
 import multiprocessing
 import traceback
 import xmltodict
-
-def findMasterByjobID(jobID):
-    status = subprocess.check_output(['qstat', '-xml'])
-    master = ''
-    qtree = ET.fromstring(status)[0]
-    rjobs = qtree.findall(".//job_list[@state='running']")
-    for job in rjobs:
-        if not isSparkJob( job ):
-            continue
-        currMaster = job.find('queue_name').text.split('@')[1]
-        currjobID  = job.find('JB_job_number').text
-        if jobID == '' or currjobID == jobID:
-            master = currMaster
-            break
-    return master
 
 def findMasters():
     return [job['queue_name'].split('@')[1].split('.')[0] for job in getqstat() if job['JB_name']=='master']
@@ -45,17 +29,21 @@ def findmaster():
     else:   
         print "No masters found. If deleting workers alone, please use Master's Job ID."
 
-def isSparkJob(job):
-    return job.find('jclass_name').text == jobname + '.default'
-
 def getmasterbyjobID(jobID):
     masterhost = None
-    bjobsout=subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", shell=True)
+    bjobsout = subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", shell=True)
     masters = bjobsout.splitlines()
     for master in masters:
         if str(jobID) in master.split()[0]:
             masterhost = master.split('*')[1]
     return masterhost
+
+def getworkersbymasterID(masterID):
+    workers = []
+    command = "bjobs -Xr -noheader -J W{} -o \"JOBID\" 2> /dev/null".format(masterID)
+    bjobsout = subprocess.check_output(command, shell=True)
+    workers = bjobsout.splitlines()
+    return workers
 
 def getqstat():
     alljobs = []
@@ -89,6 +77,24 @@ def launchorig(sleepTime='86400'):
     jobID = output.split(' ')[2]
     return jobID
 
+def launchall(runtime):
+    sparktype = args.version
+    if sparktype == "stable": 
+        sparktype = "current"
+    if runtime is None:
+        options = "-N cluster -n {}".format(args.nnodes)
+    else:
+        options = "-N cluster -n {} -W {}".format(args.nnodes,runtime)
+    #bsub requires argument for command, but the esub replaces it automatically
+    output = subprocess.check_output(["bsub -a \"sparkbatch({})\" {} commandstring".format(sparktype,options)], shell=True)
+    print('\n')
+    print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
+    print('\n')
+    jobID = rawout[0].output(" ")[1].lstrip("<").rstrip(">")
+    return jobID
+
+        
+
 def launch(runtime):
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
         os.mkdir(os.path.expanduser('~/sparklogs'))
@@ -119,7 +125,6 @@ def startmaster(sparktype, runtime):
     process = subprocess.Popen(["bsub -a \"spark(master,{})\" {} commandstring".format(sparktype,options)], shell=True, stdout=subprocess.PIPE)
     rawout = process.communicate()
     try:
-        print rawout
         masterjobID = rawout[0].split(" ")[1].lstrip("<").rstrip(">")
     except:
         sys.exit(1)
@@ -138,7 +143,6 @@ def startworker(sparktype, masterjobID, runtime):
         command = "bsub -a \"spark(worker,{})\" -J W{} -W {} commandstring".format(sparktype,masterjobID,runtime)
     else:
         command = "bsub -a \"spark(worker,{})\" -J W{} commandstring".format(sparktype,masterjobID,runtime)
-    print command
     os.system(command)
 
 
@@ -151,38 +155,50 @@ def login():
     else:
         subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'interactive=true'])
 
-def destroy(jobID):
-    status = subprocess.check_output(["qstat", "-xml"])
-    qtree = ET.fromstring(status)[0]
-    jtree = ET.fromstring(status)[1]
-    jobs = qtree.findall('job_list')
-    if len(jobs) == 0:
-        print('\n')
-        print >> sys.stderr, "No running jobs found"
-        print('\n')
-    else:
-        deleted = 0
-        for job in jobs:
-            procname = job.find('JB_name').text
-            jclass = job.find('jclass_name').text
-            state = job.find('state').text
-            jobID = job.find('JB_job_number').text
-            if (jclass[:5] == 'spark') and (state == 'r'):
-                if jobID and jobID == jobID:
-                    output = subprocess.check_output(['qdel', jobID])
-                    deleted += 1
-                else:
-                    output = subprocess.check_output(['qdel', jobID])
-                    deleted += 1
-        if deleted == 0:
-            print('\n')
-            print >> sys.stderr, "No Spark jobs deleted, try a different jobID?"
-            print('\n')
-        else:
-            print('\n')
-            print('Spark jobs successfully deleted')
-            print('\n')
+#def destroy_old(jobID):
+#    status = subprocess.check_output(["qstat", "-xml"])
+#    qtree = ET.fromstring(status)[0]
+#    jtree = ET.fromstring(status)[1]
+#    jobs = qtree.findall('job_list')
+#    if len(jobs) == 0:
+#        print('\n')
+#        print >> sys.stderr, "No running jobs found"
+#        print('\n')
+#    else:
+#        deleted = 0
+#        for job in jobs:
+#            procname = job.find('JB_name').text
+#            jclass = job.find('jclass_name').text
+#            state = job.find('state').text
+#            jobID = job.find('JB_job_number').text
+#            if (jclass[:5] == 'spark') and (state == 'r'):
+#                if jobID and jobID == jobID:
+#                    output = subprocess.check_output(['qdel', jobID])
+#                    deleted += 1
+#                else:
+#                    output = subprocess.check_output(['qdel', jobID])
+#                    deleted += 1
+#        if deleted == 0:
+#            print('\n')
+#            print >> sys.stderr, "No Spark jobs deleted, try a different jobID?"
+#            print('\n')
+#        else:
+#            print('\n')
+#            print('Spark jobs successfully deleted')
+#            print('\n')
+#
 
+def destroy(jobID):
+    if jobID == None:
+        print "Please specify a job ID for a master or cluster to tear it down."
+        sys.exit()
+    else:
+        bkilljob(jobID)
+        workers = []
+        workers = getworkersbymasterID(jobID)
+        if workers:
+            for worker in workers:
+                bkilljob(worker)
 
 def start():
     masters = findMasters()
@@ -242,10 +258,10 @@ def submit(master = ''):
 
 
 def launchAndWait():
-        jobID  = launch(str(args.sleep_time))
+        jobID  = launchall(str(args.sleep_time))
         master = ''     
         while( master == '' ):
-            master = findMasterByjobID(jobID)
+            master = getmasterbyjobID(jobID)
             time.sleep(1) # wait 1 second to avoid spamming the cluster
             sys.stdout.write('.')
             sys.stdout.flush()
@@ -306,6 +322,10 @@ def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):
 
 def qdeljob(jobID):
     command = "qdel {}".format(jobID)
+    os.system(command)
+
+def bkilljob(jobID):
+    command = "bkill {}".format(jobID)
     os.system(command)
 
 
@@ -416,7 +436,7 @@ if __name__ == "__main__":
         launch(args.sleep_time)
                         
     if args.task == 'launchall':
-        launchorig(str(args.sleep_time))
+        launchall(str(args.sleep_time))
 
     elif args.task == 'login':
         login()         
