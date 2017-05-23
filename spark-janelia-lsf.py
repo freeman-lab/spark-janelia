@@ -10,24 +10,24 @@ import multiprocessing
 import traceback
 import xmltodict
 
-def findMasters():
-    return [job['queue_name'].split('@')[1].split('.')[0] for job in getqstat() if job['JB_name']=='master']
-
-def findmaster():
-    rawout = getqstat()
-    jobID = "" 
-    masterlist = {}
-    for i in range(len(rawout)):
-        unpack = rawout[i]
-        jobID = str(unpack[u'JB_job_number'])
-        if "sparkflex" in str(unpack[u'jclass_name']) and "master" in str(unpack[u'JB_name']):
-            masterlist[jobID] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
-        elif "spark.default" or "spark-2" or "spark-rc" in str(unpack[u'jclass_name']):
-            masterlist[jobID] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
-    if len(masterlist.keys()) != 0:
-        return masterlist
-    else:   
-        print "No masters found. If deleting workers alone, please use Master's Job ID."
+#def findMasters():
+#    return [job['queue_name'].split('@')[1].split('.')[0] for job in getqstat() if job['JB_name']=='master']
+#
+#def findmaster():
+#    rawout = getqstat()
+#    jobID = "" 
+#    masterlist = {}
+#    for i in range(len(rawout)):
+#        unpack = rawout[i]
+#        jobID = str(unpack[u'JB_job_number'])
+#        if "sparkflex" in str(unpack[u'jclass_name']) and "master" in str(unpack[u'JB_name']):
+#            masterlist[jobID] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
+#        elif "spark.default" or "spark-2" or "spark-rc" in str(unpack[u'jclass_name']):
+#            masterlist[jobID] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
+#    if len(masterlist.keys()) != 0:
+#        return masterlist
+#    else:   
+#        print "No masters found. If deleting workers alone, please use Master's Job ID."
 
 def getmasterbyjobID(jobID):
     masterhost = None
@@ -38,6 +38,19 @@ def getmasterbyjobID(jobID):
             masterhost = master.split('*')[1]
     return masterhost
 
+def getallmasters():
+    masters = []
+    command = "bjobs -X -noheader -J master -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
+    bjobsout = subprocess.check_output(command, shell=True)
+    if not bjobsout: 
+        print "No masters found. Please specify job ID for sparkbatch jobs."
+        sys.exit()
+    for outline in bjobsout.splitlines():
+        outline = outline.split()
+        masterdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].lstrip("16*")}
+        masters.append(masterdict)
+    return masters
+
 def getworkersbymasterID(masterID):
     workers = []
     command = "bjobs -X -noheader -J W{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
@@ -47,7 +60,7 @@ def getworkersbymasterID(masterID):
         workerdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].lstrip("16*")}
         workers.append(workerdict)
 
-    print workers
+   # print workers
     return workers
 
 def getqstat():
@@ -70,17 +83,6 @@ def getqstat():
                 alljobs = alljobs + templist
     return alljobs
 
-#def launchorig(sleepTime='86400'):
-#    if not os.path.exists(os.path.expanduser('~/sparklogs')):
-#        os.mkdir(os.path.expanduser('~/sparklogs'))
-#
-#    startupCommand = '/misc/local/spark-versions/bin/' + launchscript
-#    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-o', os.path.expanduser('~/sparklogs/'), startupCommand])
-#    print('\n')
-#    print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
-#    print('\n')
-#    jobID = output.split(' ')[2]
-#    return jobID
 
 def launchall(runtime):
     sparktype = args.version
@@ -277,18 +279,6 @@ def update():
     os.system('git pull origin master')
     os.chdir(currentdir)
 
-#def findworker(masterjobID):
-#    rawout = getqstat()
-#    jobID = ""
-#    workername = "W{}".format(masterjobID)
-#    workerlist = {}
-#    for i in range(len(rawout)):
-#        unpack = rawout[i]
-#        jobID = str(unpack[u'JB_job_number'])
-#        if "sparkflex.worker" in str(unpack[u'jclass_name']) and workername in str(unpack[u'JB_name']):
-#            workerlist[jobID] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
-#    return workerlist
-
 def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):
     workername = "W{}".format(masterjobID)
     jobtokill = ""
@@ -317,9 +307,6 @@ def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):
         sys.exit()
     return terminatew
 
-#def qdeljob(jobID):
-#    command = "qdel {}".format(jobID)
-#    os.system(command)
 
 def bkilljob(jobID):
     command = "bkill {}".format(jobID)
@@ -332,7 +319,7 @@ def checkstop(inval, jobtype):
     else:
         check = raw_input("Remove {} workers? (y/n):".format(inval))
     if check != "y":
-        print "No workers will be removed."
+        print "Operation cancelled."
         sys.exit()
     else:
         return True
@@ -481,7 +468,9 @@ if __name__ == "__main__":
         if args.jobID is not None:
             masterjobID = args.jobID
         else: 
-            masterlist = findmaster()
+            masterlist = getallmasters()
             masterjobID = selectionlist(masterlist,'master')
             skipcheckstop = True
-        qdelmaster(masterjobID, skipcheckstop)
+        if not skipcheckstop:
+            checkstop(masterjobjobID, 'master')
+        destroy(masterjobID)
