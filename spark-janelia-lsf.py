@@ -40,9 +40,14 @@ def getmasterbyjobID(jobID):
 
 def getworkersbymasterID(masterID):
     workers = []
-    command = "bjobs -Xr -noheader -J W{} -o \"JOBID\" 2> /dev/null".format(masterID)
+    command = "bjobs -X -noheader -J W{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
     bjobsout = subprocess.check_output(command, shell=True)
-    workers = bjobsout.splitlines()
+    for outline in bjobsout.splitlines():
+        outline = outline.split()
+        workerdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].lstrip("16*")}
+        workers.append(workerdict)
+
+    print workers
     return workers
 
 def getqstat():
@@ -65,17 +70,17 @@ def getqstat():
                 alljobs = alljobs + templist
     return alljobs
 
-def launchorig(sleepTime='86400'):
-    if not os.path.exists(os.path.expanduser('~/sparklogs')):
-        os.mkdir(os.path.expanduser('~/sparklogs'))
-
-    startupCommand = '/misc/local/spark-versions/bin/' + launchscript
-    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-o', os.path.expanduser('~/sparklogs/'), startupCommand])
-    print('\n')
-    print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
-    print('\n')
-    jobID = output.split(' ')[2]
-    return jobID
+#def launchorig(sleepTime='86400'):
+#    if not os.path.exists(os.path.expanduser('~/sparklogs')):
+#        os.mkdir(os.path.expanduser('~/sparklogs'))
+#
+#    startupCommand = '/misc/local/spark-versions/bin/' + launchscript
+#    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-o', os.path.expanduser('~/sparklogs/'), startupCommand])
+#    print('\n')
+#    print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
+#    print('\n')
+#    jobID = output.split(' ')[2]
+#    return jobID
 
 def launchall(runtime):
     sparktype = args.version
@@ -89,13 +94,9 @@ def launchall(runtime):
         options = "-n {} -W {}".format(slots,runtime)
     #bsub requires argument for command, but the esub replaces it automatically
     output = subprocess.check_output(["bsub -a \"sparkbatch({})\" {} commandstring".format(sparktype,options)], shell=True)
-    print('\n')
     print 'Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots)
-    print('\n')
     jobID = output[1].lstrip("<").rstrip(">")
     return jobID
-
-        
 
 def launch(runtime):
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
@@ -200,7 +201,7 @@ def destroy(jobID):
         workers = getworkersbymasterID(jobID)
         if workers:
             for worker in workers:
-                bkilljob(worker)
+                bkilljob(worker['jobid'])
 
 def start():
     masters = findMasters()
@@ -276,36 +277,31 @@ def update():
     os.system('git pull origin master')
     os.chdir(currentdir)
 
-def findworker(masterjobID):
-    rawout = getqstat()
-    jobID = ""
-    workername = "W{}".format(masterjobID)
-    workerlist = {}
-    for i in range(len(rawout)):
-        unpack = rawout[i]
-        jobID = str(unpack[u'JB_job_number'])
-        if "sparkflex.worker" in str(unpack[u'jclass_name']) and workername in str(unpack[u'JB_name']):
-            workerlist[jobID] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
-    return workerlist
+#def findworker(masterjobID):
+#    rawout = getqstat()
+#    jobID = ""
+#    workername = "W{}".format(masterjobID)
+#    workerlist = {}
+#    for i in range(len(rawout)):
+#        unpack = rawout[i]
+#        jobID = str(unpack[u'JB_job_number'])
+#        if "sparkflex.worker" in str(unpack[u'jclass_name']) and workername in str(unpack[u'JB_name']):
+#            workerlist[jobID] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
+#    return workerlist
 
 def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):
     workername = "W{}".format(masterjobID)
-    rawout = getqstat()
     jobtokill = ""
     statuses = {}
-    for i in range(len(rawout)):
-        unpack=rawout[i]
-        jobID=str(unpack[u'JB_job_number'])
-        if 'sparkflex.worker' in str(unpack[u'jclass_name']) and str(masterjobID) in str(unpack[u'JB_name']):
-            statuses[jobID] = str(unpack[u'@state'])
-    if "pending" in statuses.values() and not skipcheckstop:
+    for worker in workerlist:
+        statuses[worker['jobid']] = worker['status']
+    if "PEND" in statuses.values() and not skipcheckstop:
         terminatew = raw_input("Terminate waiting job(s) first? (y/n) ")
-
     for wjobID in statuses.keys():
-        if statuses[wjobID] == 'pending' and terminatew == 'y':
+        if statuses[wjobID] == 'PEND' and terminatew == 'y':
             jobtokill = wjobID
             break
-        elif statuses[wjobID] == 'running' and not skipcheckstop:
+        elif statuses[wjobID] == 'RUN' and not skipcheckstop:
             jobtokill = selectionlist(workerlist, 'worker')
             break
         else:
@@ -313,18 +309,17 @@ def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):
             break
     try:
         if jobtokill != "":
-            qdeljob(jobtokill)
+            bkilljob(jobtokill)
             time.sleep(3)
     except:
-
         print "No running or waiting workers found corresponding to Master job {}".format(masterjobID)
         traceback.print_exc()
         sys.exit()
     return terminatew
 
-def qdeljob(jobID):
-    command = "qdel {}".format(jobID)
-    os.system(command)
+#def qdeljob(jobID):
+#    command = "qdel {}".format(jobID)
+#    os.system(command)
 
 def bkilljob(jobID):
     command = "bkill {}".format(jobID)
@@ -333,10 +328,10 @@ def bkilljob(jobID):
 
 def checkstop(inval, jobtype):
     if jobtype == "master":
-        checkstop = raw_input("Stop master with job id {} (y/n):".format(inval))
+        check = raw_input("Stop master with job id {} (y/n):".format(inval))
     else:
-        checkstop = raw_input("Remove {} workers? (y/n):".format(inval))
-    if checkstop != "y":
+        check = raw_input("Remove {} workers? (y/n):".format(inval))
+    if check != "y":
         print "No workers will be removed."
         sys.exit()
     else:
@@ -344,17 +339,16 @@ def checkstop(inval, jobtype):
 
 def selectionlist(joblist, jobtype):
     i = 0 
-    selectionlist = {}
+    selectlist = {}
     print "Select {} to kill from list below:".format(jobtype)
-    for jobID in joblist.keys():
+    for job in joblist:
         i = i + 1 
-        host, status = joblist[jobID]
-        selectionlist[i] = jobID
-        print "{}) Host: {} jobID: {} Status: {}".format(i, host, jobID, status)
+        selectlist[i] = job['jobid']
+        print "{}) Host: {} jobID: {} Status: {}".format(i, job['host'], job['jobid'], job['status'])
     while True:
         selection = int(raw_input("Selection? "))
         if selection <= i:
-            jobID = selectionlist[selection]
+            jobID = selectlist[selection]
             skipcheckstop = True
             break
         else:
@@ -480,9 +474,9 @@ if __name__ == "__main__":
         terminatew = ""
         jobtype = "worker"
         for node in range(args.nnodes):
-            workerlist = findworker(str(args.jobID))
+            workerlist = getworkersbymasterID(str(args.jobID))
             terminatew = stopworker(str(args.jobID), terminatew, workerlist, skipcheckstop)
-    
+   
     elif args.task == 'stopcluster':
         if args.jobID is not None:
             masterjobID = args.jobID
