@@ -1,2 +1,3 @@
 for LSF submission: 
 	fix submit to submit to separate session (both LSF and UGE)
+	fix launchAndWait and lsd
