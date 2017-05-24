@@ -95,7 +95,7 @@ def launchall(runtime):
     else:
         options = "-n {} -W {}".format(slots,runtime)
     #bsub requires argument for command, but the esub replaces it automatically
-    output = subprocess.check_output(["bsub -a \"sparkbatch({})\" {} commandstring".format(sparktype,options)], shell=True)
+    output = subprocess.check_output(["bsub -a \"sparkbatch({})\" -J {} {} commandstring".format(sparktype,jobname,options)], shell=True)
     print 'Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots)
     jobID = output[1].lstrip("<").rstrip(">")
     return jobID
@@ -150,48 +150,31 @@ def startworker(sparktype, masterjobID, runtime):
         command = "bsub -a \"spark(worker,{})\" -J W{} commandstring".format(sparktype,masterjobID,runtime)
     os.system(command)
 
-
-def login():
-    masters = findMasters()
-    if len(masters) == 0:
-        print('\n')
-        print >> sys.stderr, "No master found, keep waiting for master to launch"
-        print('\n')
-    else:
-        subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'interactive=true'])
-
-#def destroy_old(jobID):
-#    status = subprocess.check_output(["qstat", "-xml"])
-#    qtree = ET.fromstring(status)[0]
-#    jtree = ET.fromstring(status)[1]
-#    jobs = qtree.findall('job_list')
-#    if len(jobs) == 0:
-#        print('\n')
-#        print >> sys.stderr, "No running jobs found"
-#        print('\n')
-#    else:
-#        deleted = 0
-#        for job in jobs:
-#            procname = job.find('JB_name').text
-#            jclass = job.find('jclass_name').text
-#            state = job.find('state').text
-#            jobID = job.find('JB_job_number').text
-#            if (jclass[:5] == 'spark') and (state == 'r'):
-#                if jobID and jobID == jobID:
-#                    output = subprocess.check_output(['qdel', jobID])
-#                    deleted += 1
-#                else:
-#                    output = subprocess.check_output(['qdel', jobID])
-#                    deleted += 1
-#        if deleted == 0:
-#            print('\n')
-#            print >> sys.stderr, "No Spark jobs deleted, try a different jobID?"
-#            print('\n')
-#        else:
-#            print('\n')
-#            print('Spark jobs successfully deleted')
-#            print('\n')
-#
+def login(nodeslots=16):
+    if "MASTER" not in os.environ:
+        masterlist = getallmasters()
+        masterjobID = selectionlist(masterlist,'master')
+        masterurl = "spark://{}:7077".format(getmasterbyjobID(masterjobID))
+        print masterurl
+        os.environ["MASTER"] = str(masterurl)
+    if "SPARK_HOME" not in os.environ:
+        os.environ["SPARK_HOME"] = str(version) 
+    if version not in os.environ['PATH']:
+        os.environ["PATH"] = str("{}/bin:{}".format(version, os.environ['PATH']))
+    print os.environ["MASTER"]
+    print os.environ["SPARK_HOME"]
+    print os.environ["PATH"]
+    if nodeslots == 16:
+        options = "16 -R \"sandy\""
+    elif nodeslots == 32:
+        options = "32"
+    else: 
+        print "You must request an entire node for a Driver job. Please request 16 or 32 slots."
+        sys.exit()
+    command = "bsub -Is -q interactive -n {} -env \"MASTER, SPARK_HOME, PATH\" /bin/bash".format(options)
+    print command
+    os.system(command)
+    
 
 def destroy(jobID):
     if jobID == None:
@@ -384,6 +367,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--sleep_time", type=int, default=None, required=False)
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
     parser.add_argument("-f", "--force", action="store_true")
+    parser.add_argument("-d", "--driverslots", type=int, default=16, required=False)
                         
     args = parser.parse_args()
                         
@@ -416,13 +400,15 @@ if __name__ == "__main__":
         skipcheckstop = True
 
     if args.task == 'launch':
-        launch(args.sleep_time)
+        masterjobID = launch(args.sleep_time)
+        masterurl = "spark://{}:7077".format(getmasterbyjobID(masterjobID))
+        print "To set $MASTER environment variable, enter export MASTER={} at the command line.".format(masterurl)
                         
     if args.task == 'launchall':
-        launchall(str(args.sleep_time))
+        masterjobID = launchall(str(args.sleep_time))
 
     elif args.task == 'login':
-        login()         
+        login(int(args.driverslots))         
                         
     elif args.task == 'destroy':
         destroy(args.jobID or '')
@@ -448,7 +434,7 @@ if __name__ == "__main__":
     elif args.task == 'launch-in':
         master, jobID = launchAndWait()
         print '\n\nspark master: {}\n'.format(master)
-        login()
+        login(int(args.driverslots))
 
     elif args.task == 'update':
         update()
