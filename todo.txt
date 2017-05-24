@@ -1,3 +1,2 @@
 for LSF submission: 
-	write env variables to file and read them back in for login/submit/start/start-scala
 	fix submit to submit to separate session (both LSF and UGE)

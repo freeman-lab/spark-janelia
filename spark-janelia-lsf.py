@@ -158,20 +158,22 @@ def startworker(sparktype, masterjobID, runtime):
         command = "bsub -a \"spark(worker,{})\" -J W{} commandstring".format(sparktype,masterjobID,runtime)
     os.system(command)
 
-def login(nodeslots=16):
+
+def getenvironment():
     if "MASTER" not in os.environ:
         masterlist = getallmasters()
         masterjobID = selectionlist(masterlist,'master')
         masterurl = "spark://{}:7077".format(getmasterbyjobID(masterjobID))
-        print masterurl
         os.environ["MASTER"] = str(masterurl)
     if "SPARK_HOME" not in os.environ:
-        os.environ["SPARK_HOME"] = str(version) 
+        versout = subprocess.check_output("bjobs -o 'COMMAND' {}".format(masterjobID))
+        verspath = "/misc/local/spark-{}".format(versout.split()[1]) 
+        os.environ["SPARK_HOME"] = str(verspath) 
     if version not in os.environ['PATH']:
         os.environ["PATH"] = str("{}/bin:{}".format(version, os.environ['PATH']))
-    print os.environ["MASTER"]
-    print os.environ["SPARK_HOME"]
-    print os.environ["PATH"]
+
+def login(nodeslots=16):
+    getenvironment()
     if nodeslots == 16:
         options = "16 -R \"sandy\""
     elif nodeslots == 32:
