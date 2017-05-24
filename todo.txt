@@ -1,4 +1,5 @@
 for LSF submission: 
-	1. deal with pending masters when launching workers
-	2. write env variables to file and read them back in for login/submit/start/start-scala
-	3. fix submit to submit to separate session (both LSF and UGE
+	selection list, if one default to it
+	deal with pending masters when launching workers
+	write env variables to file and read them back in for login/submit/start/start-scala
+	fix submit to submit to separate session (both LSF and UGE)
