@@ -10,25 +10,6 @@ import multiprocessing
 import traceback
 import xmltodict
 
-#def findMasters():
-#    return [job['queue_name'].split('@')[1].split('.')[0] for job in getqstat() if job['JB_name']=='master']
-#
-#def findmaster():
-#    rawout = getqstat()
-#    jobID = "" 
-#    masterlist = {}
-#    for i in range(len(rawout)):
-#        unpack = rawout[i]
-#        jobID = str(unpack[u'JB_job_number'])
-#        if "sparkflex" in str(unpack[u'jclass_name']) and "master" in str(unpack[u'JB_name']):
-#            masterlist[jobID] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
-#        elif "spark.default" or "spark-2" or "spark-rc" in str(unpack[u'jclass_name']):
-#            masterlist[jobID] = (str(unpack[u'queue_name']).replace('hadoop2@',''),str(unpack[u'@state']))
-#    if len(masterlist.keys()) != 0:
-#        return masterlist
-#    else:   
-#        print "No masters found. If deleting workers alone, please use Master's Job ID."
-
 def getmasterbyjobID(jobID):
     masterhost = None
     bjobsout = subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", shell=True)
@@ -62,27 +43,6 @@ def getworkersbymasterID(masterID):
 
    # print workers
     return workers
-
-def getqstat():
-    alljobs = []
-    templist = []
-    process = subprocess.Popen("qstat -xml", shell=True, stdout=subprocess.PIPE)
-    rawxml = process.communicate()[0]
-    xmldict = xmltodict.parse(rawxml)
-# qstat -xml puts pending and running in separate namespaces. Need to append. 
-    for qkey in xmldict[u'job_info']:
-        if qkey == u'@xmlns:xsd':
-            continue
-        else:
-            if xmldict[u'job_info'][qkey]:
-# necessary because xmltodict passes single entry lists as just the entry rather than a list
-                if type(xmldict[u'job_info'][qkey][u'job_list']) is not list:
-                    templist.append(xmldict[u'job_info'][qkey][u'job_list'])
-                else:
-                    templist = xmldict[u'job_info'][qkey][u'job_list']
-                alljobs = alljobs + templist
-    return alljobs
-
 
 def launchall(runtime):
     sparktype = args.version
@@ -198,44 +158,19 @@ def destroy(jobID):
             for worker in workers:
                 bkilljob(worker['jobid'])
 
-def start():
-    masters = findMasters()
-    if len(masters) == 0:
-        print >> sys.stderr, "No master found. If already reqest, please wait for master to be acquired. Otherwise, use spark-janelia launch."  
-        sys.exit()
-    else:
-        master = 'spark://' + masters[0] + ':7077'
-
+def start(command = 'pyspark'):
+    getenvironment()
     if args.notebook is True or args.ipython is True:
        os.environ['PYSPARK_DRIVER_PYTHON'] = 'ipython'
-    
     if args.notebook is True:
        os.environ['PYSPARK_DRIVER_PYTHON'] = 'jupyter'
        os.environ['PYSPARK_DRIVER_PYTHON_OPTS'] = 'notebook --ip "*" --port 9999 --no-browser'
-       address = master[8:][:-5]
+       address = os.getenv('MASTER')[8:][:-5]
        print('\n')
        print('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999')
        print('View the status of your cluster at http://' + address + ':8080')
        print('\n')
-
-
-    if os.getenv('PATH') is None:
-        os.environ['PATH'] = ""
-
-    os.system(version + '/bin/pyspark --master='+master)
-
-
-def startScala():
-    os.environ['SPARK_HOME'] = version
-
-    if os.getenv('PATH') is None:
-        os.environ['PATH'] = ""
-
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/misc/local/python-2.7.11/bin"
-    f = open(os.path.expanduser("~") + '/spark-master', 'r')
-    os.environ['MASTER'] = f.readline().replace('\n','')
-    os.system(version + '/bin/spark-shell')
-
+    os.system(command)
 
 def submit(master = ''):
     os.environ['SPARK_HOME'] = version
@@ -431,7 +366,7 @@ if __name__ == "__main__":
         start()         
                         
     elif args.task == 'start-scala':
-        startScala()   
+        start('spark-shell') 
                         
     elif args.task == 'submit':
         submit()        
