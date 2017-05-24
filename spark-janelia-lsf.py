@@ -115,9 +115,9 @@ def launch(runtime):
         for i in range(args.nnodes):
             startworker(sparktype, masterjobID, runtime)
     except:
-        print "No workers specified or other error"
-        traceback.print_exc()
-        sys.exit()
+        print "Worker launch failed"
+        #traceback.print_exc()
+        sys.exit(1)
     return masterjobID
 
 def startmaster(sparktype, runtime):
@@ -140,9 +140,16 @@ def startworker(sparktype, masterjobID, runtime):
     masterURL = None
     masterURL = getmasterbyjobID(masterjobID)
 #insert logic to deal with pending here
-    if masterURL is None:
-        print "No master with the job id {} running or queued. Please submit master first.".format(masterjobID)
-        sys.exit()
+    while masterURL is None:
+        masterURL = getmasterbyjobID(masterjobID)
+        if masterURL is None: 
+            waitformaster = raw_input("No master with the job id {} running. Do you want to wait for it to start? (y/n) ".format(masterjobID))
+            if waitformaster == 'n':
+                print "Master may be orphaned. Please check your submitted jobs."
+                sys.exit(0)
+            else:
+                time.sleep(60)
+
     if sparktype == "stable":
         sparktype = "current"
     if runtime is not None:
