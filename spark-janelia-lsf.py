@@ -139,6 +139,7 @@ def startmaster(sparktype, runtime):
 def startworker(sparktype, masterjobID, runtime):
     masterURL = None
     masterURL = getmasterbyjobID(masterjobID)
+#insert logic to deal with pending here
     if masterURL is None:
         print "No master with the job id {} running or queued. Please submit master first.".format(masterjobID)
         sys.exit()
@@ -310,20 +311,24 @@ def checkstop(inval, jobtype):
 def selectionlist(joblist, jobtype):
     i = 0 
     selectlist = {}
-    print "Select {} to kill from list below:".format(jobtype)
-    for job in joblist:
-        i = i + 1 
-        selectlist[i] = job['jobid']
-        print "{}) Host: {} jobID: {} Status: {}".format(i, job['host'], job['jobid'], job['status'])
-    while True:
-        selection = int(raw_input("Selection? "))
-        if selection <= i:
-            jobID = selectlist[selection]
-            skipcheckstop = True
-            break
-        else:
-            print "Invalid selection."
-    return jobID
+    if len(joblist) == 1: 
+        jobID = joblist[0]['jobid']
+        return jobID
+    else:
+        print "Select {} from list below:".format(jobtype)
+        for job in joblist:
+            i = i + 1 
+            selectlist[i] = job['jobid']
+            print "{}) Host: {} jobID: {} Status: {}".format(i, job['host'], job['jobid'], job['status'])
+        while True:
+            selection = int(raw_input("Selection? "))
+            if selection <= i:
+                jobID = selectlist[selection]
+                skipcheckstop = True
+                break
+            else:
+                print "Invalid selection."
+        return jobID
 
 def qdelmaster(masterjobID, skipcheckstop):
     jobtype = "master"
