@@ -228,7 +228,7 @@ def update():
     currentdir = os.getcwd()
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(scriptdir)
-    os.system('git pull origin master')
+    os.system('git pull origin lsf')
     os.chdir(currentdir)
 
 def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):

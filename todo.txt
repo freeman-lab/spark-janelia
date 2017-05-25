@@ -1,4 +1,3 @@
 for LSF submission: 
-	fix launchAndWait and lsd
 	fix updater
 	add check for update
