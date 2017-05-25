@@ -1,6 +1,8 @@
 # Spark Janelia
 
-Scripts, utilities, and community for launching Spark on the Janelia Research Center cluster. If you have questions you can come hang out in the public freeman lab [chatroom](https://gitter.im/freeman-lab/discussion) on gitter (or #thefreemanlab on freenode).
+Scripts, utilities, and community for launching Spark on the Janelia Research Center cluster. If you have questions you can come hang out in the public freeman lab [chatroom](https://gitter.im/freeman-lab/discussion) on gitter (or #thefreemanlab on freenode). 
+
+spark-janelia-lsf.py is an updated version that works with IBM Spectrum LSF, which will become our new scheduler in the coming months. 
 
 ---
 ### Using Spark
