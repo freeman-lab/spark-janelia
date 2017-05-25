@@ -195,7 +195,7 @@ def launchAndWait():
         master = ''     
         while( master == '' ):
             master = getmasterbyjobID(jobID)
-            time.sleep(1) # wait 1 second to avoid spamming the cluster
+            time.sleep(30) # wait 30 seconds to avoid spamming the cluster
             sys.stdout.write('.')
             sys.stdout.flush()
         return master, jobID
