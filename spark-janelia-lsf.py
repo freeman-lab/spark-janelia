@@ -126,7 +126,7 @@ def getenvironment():
         masterurl = "spark://{}:7077".format(getmasterbyjobID(masterjobID))
         os.environ["MASTER"] = str(masterurl)
     if "SPARK_HOME" not in os.environ:
-        versout = subprocess.check_output("bjobs -o 'COMMAND' {}".format(masterjobID))
+        versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' {}".format(masterjobID))
         verspath = "/misc/local/spark-{}".format(versout.split()[1]) 
         os.environ["SPARK_HOME"] = str(verspath) 
     if version not in os.environ['PATH']:
@@ -153,7 +153,9 @@ def submit(nodeslots):
     getenvironment()
     options = checkslots(nodeslots)
     command = "bsub -n {} -env \"MASTER, SPARK_HOME, PATH\" \"spark-submit {}\"".format(options, args.submitargs) 
-    os.system(command)
+    rawout = subprocess.check_output(command, shell=True)
+    driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
+    return driverJobID
 
 def destroy(jobID):
     if jobID == None:
@@ -208,6 +210,19 @@ def launchAndWait():
             sys.stdout.write('.')
             sys.stdout.flush()
         return master, jobID
+
+def submitAndDestroy(jobID, driverslots):
+    master=getmasterbyjobID(jobID)
+    os.environ["MASTER"] = "spark://{}:7077".format(master)
+    driverjobID = submit(driverslots)
+    drivercomplete = False
+    while not drivercomplete:
+        driverstat = subprocess.check_output("bjobs -noheader -o 'STAT' {}".format(driverjobID), shell=True)
+        if driverstat is "EXIT" or "DONE":
+            drivercomplete = True
+        time.sleep(30)
+    destroy(jobID)
+
 
 def update():
     currentdir = os.getcwd()
@@ -282,31 +297,6 @@ def selectionlist(joblist, jobtype):
             else:
                 print "Invalid selection."
         return jobID
-
-def qdelmaster(masterjobID, skipcheckstop):
-    jobtype = "master"
-    workername = "W{}".format(masterjobID)
-    if not skipcheckstop:
-         skipcheckstop = checkstop(masterjobID,jobtype)
-    if skipcheckstop:
-        try:
-            qdeljob(masterjobID)
-        except:
-            print "Master with job id {} not found".format(masterjobID)
-            sys.exit(1)
-        try:
-            qdeljob(workername)
-        except:
-            print "Workers for master with job id {} failed to stop".format(masterjobID)
-            sys.exit(1)
-    else:
-        print "As requested, master not stopped."
-        sys.exit(0)
-
-
-def submitAndDestroy(jobID, driverslots):
-    submit(driverslots)
-    destroy(jobID)
 
 if __name__ == "__main__":
 
