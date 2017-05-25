@@ -132,8 +132,7 @@ def getenvironment():
     if version not in os.environ['PATH']:
         os.environ["PATH"] = str("{}/bin:{}".format(version, os.environ['PATH']))
 
-def login(nodeslots=16):
-    getenvironment()
+def checkslots(nodeslots=16):
     if nodeslots == 16:
         options = "16 -R \"sandy\""
     elif nodeslots == 32:
@@ -141,10 +140,20 @@ def login(nodeslots=16):
     else: 
         print "You must request an entire node for a Driver job. Please request 16 or 32 slots."
         sys.exit()
+    return options
+
+def login(nodeslots):
+    getenvironment()
+    options = checkslots(nodeslots)
     command = "bsub -Is -q interactive -n {} -env \"MASTER, SPARK_HOME, PATH\" /bin/bash".format(options)
     print command
     os.system(command)
     
+def submit(nodeslots):
+    getenvironment()
+    options = checkslots(nodeslots)
+    command = "bsub -n {} -env \"MASTER, SPARK_HOME, PATH\" \"spark-submit {}\"".format(options, args.submitargs) 
+    os.system(command)
 
 def destroy(jobID):
     if jobID == None:
@@ -171,8 +180,8 @@ def start(command = 'pyspark'):
        print('View the status of your cluster at http://' + address + ':8080')
        print('\n')
     os.system(command)
-
-def submit(master = ''):
+    
+def submit_old(master = ''):
     os.environ['SPARK_HOME'] = version
 
     if os.getenv('PATH') is None:
@@ -295,8 +304,8 @@ def qdelmaster(masterjobID, skipcheckstop):
         sys.exit(0)
 
 
-def submitAndDestroy( master, jobID ):
-    submit(master)
+def submitAndDestroy(jobID, driverslots):
+    submit(driverslots)
     destroy(jobID)
 
 if __name__ == "__main__":
@@ -369,7 +378,7 @@ if __name__ == "__main__":
         start('spark-shell') 
                         
     elif args.task == 'submit':
-        submit()        
+        submit(int(args.driverslots))
                         
     elif args.task == 'lsd':
         master, jobID = launchAndWait()
@@ -377,7 +386,7 @@ if __name__ == "__main__":
         print('\n')     
         print('%-20s%s\n%-20s%s' % ( 'job id:', jobID, 'spark master:', master ) )
         print('\n')     
-        p = multiprocessing.Process(target=submitAndDestroy, args=(master, jobID))
+        p = multiprocessing.Process(target=submitAndDestroy, args=(jobID, args.driverslots))
         p.start()       
 
     elif args.task == 'launch-in':
