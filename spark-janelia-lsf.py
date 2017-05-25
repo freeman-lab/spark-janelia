@@ -191,7 +191,7 @@ def submit(master = ''):
 
 
 def launchAndWait():
-        jobID  = launchall(str(args.sleep_time))
+        jobID  = launch(args.sleep_time)
         master = ''     
         while( master == '' ):
             master = getmasterbyjobID(jobID)
