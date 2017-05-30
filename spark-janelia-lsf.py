@@ -223,12 +223,28 @@ def submitAndDestroy(jobID, driverslots):
         time.sleep(30)
     destroy(jobID)
 
+def checkforupdate():
+    currentdir = os.getcwd()
+    scriptdir = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(scriptdir)
+    output = subprocess.check_output('git fetch --dry-run', shell=True) 
+    if output is not None: 
+        reply = raw_input("This script is not up to date. Would you like to update now? (y/n) ")
+        if reply == 'y':
+            update()
+            sys.exit()
+        else: 
+            return
 
 def update():
     currentdir = os.getcwd()
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(scriptdir)
-    os.system('git pull origin lsf')
+    try:
+        os.system('git pull -q origin lsf')
+        print "Update successful."
+    except:
+        print "Update failed."
     os.chdir(currentdir)
 
 def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):
@@ -300,8 +316,9 @@ def selectionlist(joblist, jobtype):
 
 if __name__ == "__main__":
 
-    skipcheckstop = False
+    checkforupdate()
 
+    skipcheckstop = False
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
                         
     choices = ('launch', 'launchall', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'update', 'add-workers', 'remove-workers', 'stopcluster')
