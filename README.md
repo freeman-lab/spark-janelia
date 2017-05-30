@@ -128,6 +128,11 @@ spark-janelia destroy
 ```
 You can check that these nodes have successfully been released with the `qstat` command.
 
+For multiple running clusters, use
+```
+spark-janelia stopcluster
+```
+with an optional -j jobid flag. 
 ---
 ## Questions and comments
 Many Spark users at Janelia hang out in the freeman lab [gitter chat rooom](https://gitter.im/freeman-lab/discussion). If you have questions or comments, or just want to join the conversation, please drop by!
