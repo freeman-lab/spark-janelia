@@ -1,3 +1,2 @@
 for LSF submission: 
-	fix updater
 	add check for update
