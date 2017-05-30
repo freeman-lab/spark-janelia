@@ -227,9 +227,9 @@ def checkforupdate():
     currentdir = os.getcwd()
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(scriptdir)
-    output = None
     output = subprocess.check_output('git fetch --dry-run', shell=True) 
-    if output is not None: 
+    print output
+    if output is not "\n": 
         reply = raw_input("This script is not up to date. Would you like to update now? (y/n) ")
         if reply == 'y':
             update()
