@@ -228,8 +228,7 @@ def checkforupdate():
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(scriptdir)
     output = subprocess.check_output('git fetch --dry-run', shell=True) 
-    print output
-    if output is not "\n": 
+    if "remote" in output: 
         reply = raw_input("This script is not up to date. Would you like to update now? (y/n) ")
         if reply == 'y':
             update()
