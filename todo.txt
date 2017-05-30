@@ -1,2 +1,2 @@
 for LSF submission: 
-	add check for update - almost there
+	add check for update - just a few more meters
