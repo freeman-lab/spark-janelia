@@ -1,2 +1,2 @@
 for LSF submission: 
-	add check for update
+	add check for update - almost there
