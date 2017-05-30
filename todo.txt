@@ -1,2 +1,2 @@
 for LSF submission: 
-	add check for update - just a few more meters
+	add check for update - testing for words
