@@ -242,7 +242,7 @@ def update():
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(scriptdir)
     try:
-        os.system('git pull -q origin lsf')
+        os.system('git pull origin lsf')
         print "Update successful."
     except:
         print "Update failed."
