@@ -415,11 +415,16 @@ if __name__ == "__main__":
             startworker(args.version, masterjobID, args.sleep_time)
 
     elif args.task == 'remove-workers':
+        if args.jobID is None:
+            masterlist = getallmasters()
+            masterjobID = selectionlist(masterlist,'master')
+        else:
+            masterjobID = args.jobID
         terminatew = ""
         jobtype = "worker"
         for node in range(args.nnodes):
-            workerlist = getworkersbymasterID(str(args.jobID))
-            terminatew = stopworker(str(args.jobID), terminatew, workerlist, skipcheckstop)
+            workerlist = getworkersbymasterID(str(masterjobID))
+            terminatew = stopworker(str(masterjobID), terminatew, workerlist, skipcheckstop)
    
     elif args.task == 'stopcluster':
         if args.jobID is not None:
