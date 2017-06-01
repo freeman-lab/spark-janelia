@@ -126,7 +126,7 @@ def getenvironment():
         masterurl = "spark://{}:7077".format(getmasterbyjobID(masterjobID))
         os.environ["MASTER"] = str(masterurl)
     if "SPARK_HOME" not in os.environ:
-        versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' {}".format(masterjobID))
+        versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' {}".format(masterjobID), shell=True)
         verspath = "/misc/local/spark-{}".format(versout.split()[1]) 
         os.environ["SPARK_HOME"] = str(verspath) 
     if version not in os.environ['PATH']:
