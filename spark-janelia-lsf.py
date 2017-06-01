@@ -406,8 +406,13 @@ if __name__ == "__main__":
         update()
 
     elif args.task == 'add-workers':
+        if args.jobID is None:
+            masterlist = getallmasters()
+            masterjobID = selectionlist(masterlist,'master')
+        else:
+            masterjobID = args.jobID
         for node in range(args.nnodes):
-            startworker(args.version, str(args.jobID), args.sleep_time)
+            startworker(args.version, masterjobID, args.sleep_time)
 
     elif args.task == 'remove-workers':
         terminatew = ""
