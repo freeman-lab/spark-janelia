@@ -160,7 +160,7 @@ def submit(nodeslots):
     return driverJobID
 
 def destroy(jobID):
-    if jobID == None:
+    if jobID is '':
         print "Please specify a job ID for a master or cluster to tear it down."
         sys.exit()
     else:
@@ -331,7 +331,7 @@ if __name__ == "__main__":
     skipcheckstop = False
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
                         
-    choices = ('launch', 'launchall', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'update', 'add-workers', 'remove-workers', 'stopcluster')
+    choices = ('launch', 'launchall', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'launch-notebook', 'update', 'add-workers', 'remove-workers', 'stopcluster')
                         
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
@@ -410,6 +410,10 @@ if __name__ == "__main__":
         master, jobID = launchAndWait()
         print '\n\nspark master: {}\n'.format(master)
         login(int(args.driverslots))
+
+    elif args.task == 'launch-notebook':
+        master, jobID = launchAndWait()
+        print '\n\nspark master: {}\n'.format(master)
 
     elif args.task == 'update':
         update()
