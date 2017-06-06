@@ -147,14 +147,14 @@ def checkslots(nodeslots=16):
 def login(nodeslots):
     getenvironment()
     options = checkslots(nodeslots)
-    command = "bsub -Is -n {} -env \"MASTER, SPARK_HOME, PATH\" /bin/bash".format(options)
+    command = "bsub -Is -n {} /bin/bash".format(options)
     print command
     os.system(command)
     
-def submit(nodeslots):
+def submit(nodeslots, sparkcommand):
     getenvironment()
     options = checkslots(nodeslots)
-    command = "bsub -n {} -env \"MASTER, SPARK_HOME, PATH\" \"spark-submit {}\"".format(options, args.submitargs) 
+    command = "bsub -n {} \"{}\"".format(options, sparkcommand) 
     rawout = subprocess.check_output(command, shell=True)
     driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
     return driverJobID
@@ -220,10 +220,10 @@ def launchAndWait():
             sys.stdout.flush()
         return master, jobID
 
-def submitAndDestroy(jobID, driverslots):
+def submitAndDestroy(jobID, driverslots, sparksubargs):
     master=getmasterbyjobID(jobID)
     os.environ["MASTER"] = "spark://{}:7077".format(master)
-    driverjobID = submit(driverslots)
+    driverjobID = submit(driverslots, sparksubargs)
     drivercomplete = False
     while not drivercomplete:
         driverstat = subprocess.check_output("bjobs -noheader -o 'STAT' {}".format(driverjobID), shell=True)
@@ -395,15 +395,17 @@ if __name__ == "__main__":
         start('spark-shell') 
                         
     elif args.task == 'submit':
-        submit(int(args.driverslots))
+        sparksubargs = 'spark-submit {}'.format(args.submitargs)
+        submit(int(args.driverslots), sparksubargs)
                         
     elif args.task == 'lsd':
         master, jobID = launchAndWait()
         master = 'spark://%s:7077' % master
+        sparksubargs = 'spark-submit {}'.format(args.submitargs)
         print('\n')     
         print('%-20s%s\n%-20s%s' % ( 'job id:', jobID, 'spark master:', master ) )
         print('\n')     
-        p = multiprocessing.Process(target=submitAndDestroy, args=(jobID, args.driverslots))
+        p = multiprocessing.Process(target=submitAndDestroy, args=(jobID, args.driverslots, sparksubargs))
         p.start()       
 
     elif args.task == 'launch-in':
@@ -414,6 +416,9 @@ if __name__ == "__main__":
     elif args.task == 'launch-notebook':
         master, jobID = launchAndWait()
         print '\n\nspark master: {}\n'.format(master)
+        address = setupnotebook()
+        submit(int(args.driverslots), "pyspark")
+
 
     elif args.task == 'update':
         update()
@@ -445,7 +450,7 @@ if __name__ == "__main__":
         else: 
             masterlist = getallmasters()
             masterjobID = selectionlist(masterlist,'master')
-            skipcheckstop = True
+#            skipcheckstop = True
         if not skipcheckstop:
-            checkstop(masterjobjobID, 'master')
+            checkstop(masterjobID, 'master')
         destroy(masterjobID)
