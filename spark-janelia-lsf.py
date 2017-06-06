@@ -1,4 +1,4 @@
-#!/misc/local/python-2.7.11/bin/python2.7
+#!/usr/bin/env python
 
 import os
 import glob
@@ -8,7 +8,7 @@ import subprocess
 import time
 import multiprocessing
 import traceback
-import xmltodict
+from distutils import spawn
 
 def getmasterbyjobID(jobID):
     masterhost = None
@@ -123,10 +123,12 @@ def getenvironment():
     if "MASTER" not in os.environ:
         masterlist = getallmasters()
         masterjobID = selectionlist(masterlist,'master')
-        masterurl = "spark://{}:7077".format(getmasterbyjobID(masterjobID))
-        os.environ["MASTER"] = str(masterurl)
+        masterhost = getmasterbyjobID(masterjobID)
+        os.environ["MASTER"] = str("spark://{}:7077".format(masterhost))
+    else:
+        masterhost = os.getenv('MASTER').lstrip("spark://").replace(":7077","")
     if "SPARK_HOME" not in os.environ:
-        versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' {}".format(masterjobID), shell=True)
+        versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' -r -m {}".format(masterhost), shell=True)
         verspath = "/misc/local/spark-{}".format(versout.split()[1]) 
         os.environ["SPARK_HOME"] = str(verspath) 
     if version not in os.environ['PATH']:
@@ -145,7 +147,7 @@ def checkslots(nodeslots=16):
 def login(nodeslots):
     getenvironment()
     options = checkslots(nodeslots)
-    command = "bsub -Is -q interactive -n {} -env \"MASTER, SPARK_HOME, PATH\" /bin/bash".format(options)
+    command = "bsub -Is -n {} -env \"MASTER, SPARK_HOME, PATH\" /bin/bash".format(options)
     print command
     os.system(command)
     
@@ -170,18 +172,25 @@ def destroy(jobID):
                 bkilljob(worker['jobid'])
 
 def start(command = 'pyspark'):
-    getenvironment()
-    if args.notebook is True or args.ipython is True:
-       os.environ['PYSPARK_DRIVER_PYTHON'] = 'ipython'
+    if args.ipython is True:
+        os.environ['PYSPARK_DRIVER_PYTHON'] = 'ipython'
     if args.notebook is True:
-       os.environ['PYSPARK_DRIVER_PYTHON'] = 'jupyter'
-       os.environ['PYSPARK_DRIVER_PYTHON_OPTS'] = 'notebook --ip "*" --port 9999 --no-browser'
-       address = os.getenv('MASTER')[8:][:-5]
-       print('\n')
-       print('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999')
-       print('View the status of your cluster at http://' + address + ':8080')
-       print('\n')
+        address = setupnotebook()
+        print('\n')
+        print('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999')
+        print('View the status of your cluster at http://' + address + ':8080')
+        print('\n')
     os.system(command)
+
+def setupnotebook():
+    getenvironment()
+    if spawn.find_executable('jupyter') is None:
+        print "Jupyter not found. Wrong python in $PATH?"
+        sys.exit(1)
+    os.environ['PYSPARK_DRIVER_PYTHON'] = 'jupyter'
+    os.environ['PYSPARK_DRIVER_PYTHON_OPTS'] = 'notebook --ip "*" --port 9999 --no-browser'
+    address = os.getenv('MASTER')[8:][:-5]
+    return address 
     
 def submit_old(master = ''):
     os.environ['SPARK_HOME'] = version
