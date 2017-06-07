@@ -40,9 +40,17 @@ def getworkersbymasterID(masterID):
         outline = outline.split()
         workerdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].lstrip("16*")}
         workers.append(workerdict)
-
-   # print workers
     return workers
+
+def getdriversbymasterID(masterID):
+    drivers = []
+    command = "bjobs -X -noheader -J D{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
+    bjobsout = subprocess.check_output(command, shell=True)
+    for outline in bjobsout.splitlines():
+        outline = outline.split()
+        driverdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].lstrip("16*")}
+        drivers.append(driverdict)
+    return drivers
 
 def launchall(runtime):
     sparktype = args.version
@@ -151,10 +159,14 @@ def login(nodeslots):
     print command
     os.system(command)
     
-def submit(nodeslots, sparkcommand):
+def submit(jobID, nodeslots, sparkcommand):
     getenvironment()
     options = checkslots(nodeslots)
-    command = "bsub -n {} \"{}\"".format(options, sparkcommand) 
+    if args.sleep_time is None:
+        runtime = "8:00"
+    else:
+        runtime = args.sleep_time
+    command = "bsub -W {} -n {} -J D{} \"{}\"".format(runtime, options, jobID, sparkcommand) 
     rawout = subprocess.check_output(command, shell=True)
     driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
     return driverJobID
@@ -170,6 +182,11 @@ def destroy(jobID):
         if workers:
             for worker in workers:
                 bkilljob(worker['jobid'])
+        drivers = []
+        drivers = getdriversbymasterID(jobID)
+        if drivers:
+            for driver in drivers:
+                bkilljob(driver['jobid'])
 
 def start(command = 'pyspark'):
     if args.ipython is True:
@@ -223,7 +240,7 @@ def launchAndWait():
 def submitAndDestroy(jobID, driverslots, sparksubargs):
     master=getmasterbyjobID(jobID)
     os.environ["MASTER"] = "spark://{}:7077".format(master)
-    driverjobID = submit(driverslots, sparksubargs)
+    driverjobID = submit(jobID, driverslots, sparksubargs)
     drivercomplete = False
     while not drivercomplete:
         driverstat = subprocess.check_output("bjobs -noheader -o 'STAT' {}".format(driverjobID), shell=True)
@@ -396,7 +413,7 @@ if __name__ == "__main__":
                         
     elif args.task == 'submit':
         sparksubargs = 'spark-submit {}'.format(args.submitargs)
-        submit(int(args.driverslots), sparksubargs)
+        submit(args.jobID, int(args.driverslots), sparksubargs)
                         
     elif args.task == 'lsd':
         master, jobID = launchAndWait()
@@ -415,10 +432,13 @@ if __name__ == "__main__":
 
     elif args.task == 'launch-notebook':
         master, jobID = launchAndWait()
-        print '\n\nspark master: {}\n'.format(master)
+        #print '\n\nspark master: {}\n'.format(master)
+        os.environ['MASTER'] = "spark://{}:7077".format(master)
         address = setupnotebook()
-        submit(int(args.driverslots), "pyspark")
-
+        driverjobID = submit(jobID, int(args.driverslots), "pyspark")
+        time.sleep(2)
+        driverhost = subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), shell=True)
+        print "Jupyter notebook at http://{}:9999".format(driverhost[3:].replace('\n',''))
 
     elif args.task == 'update':
         update()
