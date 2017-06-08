@@ -209,24 +209,6 @@ def setupnotebook():
     address = os.getenv('MASTER')[8:][:-5]
     return address 
     
-def submit_old(master = ''):
-    os.environ['SPARK_HOME'] = version
-
-    if os.getenv('PATH') is None:
-        os.environ['PATH'] = ""
-
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/misc/local/python-2.7.11/bin"
-    if master == '':
-        with open(os.path.expanduser("~") + '/spark-master', 'r') as f:
-            master = f.readline().replace('\n','')
-    os.environ['MASTER'] = master
-
-    # ssh into master and then run spark-submit
-    currentPath = os.getcwd();
-    command = 'ssh ' + master[8:14] +  ' "cd ' + currentPath + '; ' + version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs + '"'
-    os.system(command)
-
-
 def launchAndWait():
         jobID  = launch(args.sleep_time)
         master = ''     
@@ -470,7 +452,6 @@ if __name__ == "__main__":
         else: 
             masterlist = getallmasters()
             masterjobID = selectionlist(masterlist,'master')
-#            skipcheckstop = True
         if not skipcheckstop:
             checkstop(masterjobID, 'master')
         destroy(masterjobID)
