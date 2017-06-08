@@ -10,6 +10,19 @@ import multiprocessing
 import traceback
 from distutils import spawn
 
+#########Variables to change for cluster environment
+def_node_slots = 16
+alt_slots = 32
+queue = 'spark'
+SPARKVERSIONS = {   
+    'current': '/misc/local/spark-current/',
+    'rc': '/misc/local/spark-rc/',
+    'test': '/misc/local/spark-test',
+    '2': '/misc/local/spark-2'
+}                   
+defaultversion = 'current'
+####################################################
+
 def getmasterbyjobID(jobID):
     masterhost = None
     bjobsout = subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", shell=True)
@@ -28,7 +41,7 @@ def getallmasters():
         sys.exit()
     for outline in bjobsout.splitlines():
         outline = outline.split()
-        masterdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].lstrip("16*")}
+        masterdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].split('*')[1]}
         masters.append(masterdict)
     return masters
 
@@ -38,7 +51,7 @@ def getworkersbymasterID(masterID):
     bjobsout = subprocess.check_output(command, shell=True)
     for outline in bjobsout.splitlines():
         outline = outline.split()
-        workerdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].lstrip("16*")}
+        workerdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].split('*')[1]}
         workers.append(workerdict)
     return workers
 
@@ -48,22 +61,19 @@ def getdriversbymasterID(masterID):
     bjobsout = subprocess.check_output(command, shell=True)
     for outline in bjobsout.splitlines():
         outline = outline.split()
-        driverdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].lstrip("16*")}
+        driverdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].split('*')[1]}
         drivers.append(driverdict)
     return drivers
 
 def launchall(runtime):
     sparktype = args.version
-    #In LSF 1 slot = 1 core, + 16 for master
-    slots = 16 + args.nnodes*16
-    if sparktype == "stable": 
-        sparktype = "current"
+    slots = def_node_slots + args.nnodes*def_node_slots
     if runtime == "None":
         options = "-n {}".format(slots)
     else:
         options = "-n {} -W {}".format(slots,runtime)
     #bsub requires argument for command, but the esub replaces it automatically
-    output = subprocess.check_output(["bsub -a \"sparkbatch({})\" -J {} {} commandstring".format(sparktype,jobname,options)], shell=True)
+    output = subprocess.check_output(["bsub -a \"sparkbatch({})\" -J sparkbatch {} commandstring".format(sparktype,options)], shell=True)
     print 'Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots)
     jobID = output[1].lstrip("<").rstrip(">")
     return jobID
@@ -73,10 +83,6 @@ def launch(runtime):
         os.mkdir(os.path.expanduser('~/sparklogs'))
     
     sparktype = args.version
-    if sparktype == "stable":
-        version = "current"
-    else:
-        version = str(sparktype)  
     masterjobID = startmaster(sparktype, runtime)
     time.sleep(10)
     try:
@@ -90,8 +96,6 @@ def launch(runtime):
 
 def startmaster(sparktype, runtime):
     options = None
-    if sparktype == "stable": 
-        sparktype = "current"
     if runtime is not None:
         options = "-W {}".format(runtime)
     #bsub requires argument for command, but the esub replaces it automatically
@@ -118,8 +122,6 @@ def startworker(sparktype, masterjobID, runtime):
             else:
                 time.sleep(60)
 
-    if sparktype == "stable":
-        sparktype = "current"
     if runtime is not None:
         command = "bsub -a \"spark(worker,{})\" -J W{} -W {} commandstring".format(sparktype,masterjobID,runtime)
     else:
@@ -128,6 +130,7 @@ def startworker(sparktype, masterjobID, runtime):
 
 
 def getenvironment():
+    #Set MASTER
     if "MASTER" not in os.environ:
         masterlist = getallmasters()
         masterjobID = selectionlist(masterlist,'master')
@@ -135,20 +138,24 @@ def getenvironment():
         os.environ["MASTER"] = str("spark://{}:7077".format(masterhost))
     else:
         masterhost = os.getenv('MASTER').lstrip("spark://").replace(":7077","")
+
+    #Set SPARK_HOME
     if "SPARK_HOME" not in os.environ:
         versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' -r -m {}".format(masterhost), shell=True)
-        verspath = "/misc/local/spark-{}".format(versout.split()[1]) 
+        verspath = SPARKVERSIONS[versout.split()[1]]
         os.environ["SPARK_HOME"] = str(verspath) 
-    if version not in os.environ['PATH']:
-        os.environ["PATH"] = str("{}/bin:{}".format(version, os.environ['PATH']))
 
-def checkslots(nodeslots=16):
-    if nodeslots == 16:
-        options = "16 -R \"sandy\""
-    elif nodeslots == 32:
-        options = "32"
+    #Set PATH
+    if args.version not in os.environ['PATH']:
+        os.environ["PATH"] = str("{}/bin:{}".format(args.version, os.environ['PATH']))
+
+def checkslots(nodeslots=def_node_slots):
+    if nodeslots == def_node_slots:
+        options = "{} -R \"sandy\"".format(def_node_slots)
+    elif nodeslots == alt_slots:
+        options = str(alt_slots) 
     else: 
-        print "You must request an entire node for a Driver job. Please request 16 or 32 slots."
+        print "You must request an entire node for a Driver job. Please request {} or {} slots.".format(def_node_slots, alt_slots)
         sys.exit()
     return options
 
@@ -214,7 +221,7 @@ def launchAndWait():
         master = ''     
         while( master == '' ):
             master = getmasterbyjobID(jobID)
-            time.sleep(30) # wait 30 seconds to avoid spamming the cluster
+            time.sleep(10) # wait 30 seconds to avoid spamming the cluster
             sys.stdout.write('.')
             sys.stdout.flush()
         return master, jobID
@@ -326,6 +333,7 @@ def selectionlist(joblist, jobtype):
 if __name__ == "__main__":
 
     checkforupdate()
+    versiontypes = SPARKVERSIONS.keys()
 
     skipcheckstop = False
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
@@ -336,39 +344,16 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
     parser.add_argument("-i", "--ipython", action="store_true")
     parser.add_argument("-b", "--notebook", action="store_true")
-    parser.add_argument("-v", "--version", choices=("stable", "rc", "test", "2"), default="stable", required=False)
+    parser.add_argument("-v", "--version", choices=versiontypes, default=defaultversion, required=False)
     parser.add_argument("-j", "--jobID", type=int, default=None, required=False)
     parser.add_argument("-t", "--sleep_time", type=int, default=None, required=False)
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
     parser.add_argument("-f", "--force", action="store_true")
-    parser.add_argument("-d", "--driverslots", type=int, default=16, required=False)
+    parser.add_argument("-d", "--driverslots", type=int, default=def_node_slots, required=False)
                         
     args = parser.parse_args()
                         
-    SPARKVERSIONS = {   
-        'stable': '/misc/local/spark-current/',
-        'rc': '/misc/local/spark-rc/',
-        'test': '/misc/local/spark-test',
-        '2': '/misc/local/spark-2'
-    }                   
-                        
-    SPARKJOBS = {
-        'stable': 'spark',   
-        'rc': 'spark-rc',  
-        'test': 'spark-test',   
-        '2': 'spark-2'
-    }    
-
-    SPARKLAUNCHSCRIPTS = {
-        'stable': 'start-cluster.sh',
-        'rc': 'start-rc-cluster.sh',
-        'test': 'start-test-cluster.sh',
-        '2': 'start-2-cluster.sh'
-    }
-
     version = SPARKVERSIONS[args.version]
-    jobname = SPARKJOBS[args.version]
-    launchscript = SPARKLAUNCHSCRIPTS[args.version]
                         
     if args.force == True:
         skipcheckstop = True
@@ -418,8 +403,10 @@ if __name__ == "__main__":
         os.environ['MASTER'] = "spark://{}:7077".format(master)
         address = setupnotebook()
         driverjobID = submit(jobID, int(args.driverslots), "pyspark")
-        time.sleep(2)
+        print driverjobID
+        time.sleep(10)
         driverhost = subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), shell=True)
+        print driverhost
         print "Jupyter notebook at http://{}:9999".format(driverhost[3:].replace('\n',''))
 
     elif args.task == 'update':
