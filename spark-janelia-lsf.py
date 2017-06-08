@@ -128,7 +128,6 @@ def startworker(sparktype, masterjobID, runtime):
         command = "bsub -a \"spark(worker,{})\" -J W{} commandstring".format(sparktype,masterjobID,runtime)
     os.system(command)
 
-
 def getenvironment():
     #Set MASTER
     if "MASTER" not in os.environ:
@@ -256,7 +255,7 @@ def update():
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(scriptdir)
     try:
-        os.system('git pull origin lsf')
+        os.system('git pull origin master')
         os.system('git pull')
         print "Update successful."
     except:
