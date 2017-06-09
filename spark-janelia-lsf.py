@@ -12,7 +12,9 @@ from distutils import spawn
 
 #########Variables to change for cluster environment
 def_node_slots = 16
+def_options = "-R \"sandy\""
 alt_slots = 32
+alt_options = ""
 queue = 'spark'
 SPARKVERSIONS = {   
     'current': '/misc/local/spark-current/',
@@ -150,9 +152,9 @@ def getenvironment():
 
 def checkslots(nodeslots=def_node_slots):
     if nodeslots == def_node_slots:
-        options = "{} -R \"sandy\"".format(def_node_slots)
+        options = "{} {}".format(def_node_slots, def_options)
     elif nodeslots == alt_slots:
-        options = str(alt_slots) 
+        options = "{} {}".format(alt_slots, alt_options)
     else: 
         print "You must request an entire node for a Driver job. Please request {} or {} slots.".format(def_node_slots, alt_slots)
         sys.exit()
@@ -162,7 +164,6 @@ def login(nodeslots):
     getenvironment()
     options = checkslots(nodeslots)
     command = "bsub -Is -n {} /bin/bash".format(options)
-    print command
     os.system(command)
     
 def submit(jobID, nodeslots, sparkcommand):
@@ -351,8 +352,6 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--driverslots", type=int, default=def_node_slots, required=False)
                         
     args = parser.parse_args()
-                        
-    version = SPARKVERSIONS[args.version]
                         
     if args.force == True:
         skipcheckstop = True
