@@ -50,10 +50,12 @@ def getallmasters():
 def getworkersbymasterID(masterID):
     workers = []
     command = "bjobs -X -noheader -J W{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
+    print command
     bjobsout = subprocess.check_output(command, shell=True)
     for outline in bjobsout.splitlines():
+        print outline
         outline = outline.split()
-        workerdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].split('*')[1]}
+        workerdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2][3:]}
         workers.append(workerdict)
     return workers
 
@@ -86,7 +88,7 @@ def launch(runtime):
     
     sparktype = args.version
     masterjobID = startmaster(sparktype, runtime)
-    time.sleep(10)
+    time.sleep(5)
     try:
         for i in range(args.nnodes):
             startworker(sparktype, masterjobID, runtime)
@@ -113,7 +115,6 @@ def startmaster(sparktype, runtime):
 def startworker(sparktype, masterjobID, runtime):
     masterURL = None
     masterURL = getmasterbyjobID(masterjobID)
-#insert logic to deal with pending here
     while masterURL is None:
         masterURL = getmasterbyjobID(masterjobID)
         if masterURL is None: 
@@ -221,9 +222,10 @@ def launchAndWait():
         master = ''     
         while( master == '' ):
             master = getmasterbyjobID(jobID)
-            time.sleep(10) # wait 30 seconds to avoid spamming the cluster
+            time.sleep(10) # wait 10 seconds to avoid spamming the cluster
             sys.stdout.write('.')
             sys.stdout.flush()
+        os.environ["MASTER"] = "spark://{}:7077".format(master)
         return master, jobID
 
 def submitAndDestroy(jobID, driverslots, sparksubargs):
@@ -401,11 +403,12 @@ if __name__ == "__main__":
         os.environ['MASTER'] = "spark://{}:7077".format(master)
         address = setupnotebook()
         driverjobID = submit(jobID, int(args.driverslots), "pyspark")
-        print driverjobID
+        #print driverjobID
         time.sleep(10)
         driverhost = subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), shell=True)
-        print driverhost
+        #print driverhost
         print "Jupyter notebook at http://{}:9999".format(driverhost[3:].replace('\n',''))
+        print "Don't forget to run stopcluster when you exit your notebook. The spark cluster will not exit automatically."
 
     elif args.task == 'update':
         update()
