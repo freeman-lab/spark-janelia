@@ -39,7 +39,8 @@ cd .ssh
 cat id_dsa.pub >> authorized_keys
 ```
 
-#### Quick start to Jupyter Notebook
+---
+### Quick start to Jupyter Notebook
 
 While logged into a login node, submit the following to launch a cluster, then start a Jupyter Notebook server: 
 ```
@@ -53,8 +54,8 @@ To terminate this cluster (including the notebook server), on the login node, ru
 spark-janelia-lsf stopcluster
 ```
 
-
-#### Details and more complex use cases
+---
+### Details and more complex use cases
 While logged in to one of Janelia cluster's login nodes, submit a request to run a group of nodes as a Spark cluster using:
 ```
 spark-janelia-lsf launch -n <number_of_workers>
@@ -78,8 +79,15 @@ spark-janelia-lsf login
 ```
 You can now run Spark applications as described below.
 
-#### Various options for running jobs on the Spark cluster
-To start the Spark interactive shell in Python call
+#### SHORTCUT: Running a Spark cluster in interactive mode (no notebook):
+
+```
+spark-janelia-lsf <args> launch-in
+```
+This will launch the spark cluster, then start an interactive job on a driver node. Note that you can specify -d <num_slots> for number of slots to use on the driver. This is limited to whole nodes; ie 16 or 32 slots. 
+
+#### Various options for interactive jobs on the Spark cluster
+To start the Spark interactive shell in iPython call
 ```
 spark-janelia-lsf start
 ```
@@ -89,8 +97,8 @@ To start the Spark interactive shell in Scala call
 ```
 spark-janelia-lsf start-scala
 ```
-
-#### To submit a Spark application to run
+---
+### To submit a Spark application to run
 ```
 spark-janelia-lsf submit -s <submit_arguments>
 ```
@@ -107,12 +115,10 @@ spark-janelia-lsf <args> lsd -s <submit_arguments>
 ```
 will submit your application and delete the cluter job, once it has finished. `lsd` is short for `launch-submit-and-destroy` and the meaning of `submit_arguments` is along the lines of `spark-janelia-lsf submit`. For an example of how to set up a Python script for this workflow, see the example in `examples/lsd-example.py`.
 
-#### Running a Spark cluster in interactive mode (no notebook):
 
-```
-spark-janelia-lsf <args> launch-in
-```
-This will launch the spark cluster, then start an interactive job on a driver node. Note that you can specify -d <num_slots> for number of slots to use on the driver. This is limited to whole nodes; ie 16 or 32 slots. 
+
+---
+### Changing cluster size (not available for sparkbatch/launchall type jobs)
 
 #### Adding nodes to a running cluster
 To add nodes to your Spark cluster:
@@ -169,7 +175,8 @@ spark-janelia-lsf destroy -j <jobid_of_master>
 
 You can check that these nodes have successfully been released with the `bjobs` command.
 
-#### Other options
+---
+### Other options
 ``` 
 -v|--version {current|test|2|rc}  #Sets version of Spark to use. See the wiki for information about the available versions. 
 -f|--force                        #Skips selection list and/or confirmation of action
@@ -178,6 +185,6 @@ You can check that these nodes have successfully been released with the `bjobs` 
 -t|--sleep-time {minutes}         #Overrides default hard runtime of 8 hours. In LSF this is set in minutes. At the end of this time, the jobs will exit automatically. 
 update                            #Downloads the latest version from github
 ```
-
+---
 ## Questions and comments
 Please submit a ticket to the HHMI Helpdesk if you run into any issues with this script or Spark clusters. 
