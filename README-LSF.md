@@ -54,7 +54,7 @@ spark-janelia-lsf stopcluster
 ```
 
 
-#### Starting a cluster - slower start
+#### Details and more complex use cases
 While logged in to one of Janelia cluster's login nodes, submit a request to run a group of nodes as a Spark cluster using:
 ```
 spark-janelia-lsf launch -n <number_of_workers>
@@ -89,7 +89,8 @@ To start the Spark interactive shell in Scala call
 ```
 spark-janelia-lsf start-scala
 ```
-And to submit a Spark application to run call
+
+#### To submit a Spark application to run
 ```
 spark-janelia-lsf submit -s <submit_arguments>
 ```
@@ -165,6 +166,16 @@ spark-janelia-lsf destroy -j <jobid_of_master>
 ```
 
 You can check that these nodes have successfully been released with the `bjobs` command.
+
+####Other options
+``` 
+-v|--version {current|test|2|rc}  #Sets version of Spark to use. See the wiki for information about the available versions. 
+-f|--force                        #Skips selection list and/or confirmation of action
+-d|--driverslots {16|32}          #Sets number of slots to use on a driver job. Only available in whole node increments (16 or 32 slots)
+-i False                          #Unsets ipython as the shell for pyspark
+-t|--sleep-time {minutes}         #Overrides default hard runtime of 8 hours. In LSF this is set in minutes. At the end of this time, the jobs will exit automatically. 
+update                            #Downloads the latest version from github
+
 
 ## Questions and comments
 Please submit a ticket to the HHMI Helpdesk if you run into any issues with this script or Spark clusters. 
