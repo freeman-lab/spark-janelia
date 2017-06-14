@@ -50,10 +50,10 @@ def getallmasters():
 def getworkersbymasterID(masterID):
     workers = []
     command = "bjobs -X -noheader -J W{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
-    print command
+    #print command
     bjobsout = subprocess.check_output(command, shell=True)
     for outline in bjobsout.splitlines():
-        print outline
+    #   print outline
         outline = outline.split()
         workerdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2][3:]}
         workers.append(workerdict)
@@ -148,8 +148,10 @@ def getenvironment():
         os.environ["SPARK_HOME"] = str(verspath) 
 
     #Set PATH
-    if args.version not in os.environ['PATH']:
-        os.environ["PATH"] = str("{}/bin:{}".format(args.version, os.environ['PATH']))
+    sparkpath = "{}/bin:{}/sbin".format(os.getenv('SPARK_HOME'), os.getenv('SPARK_HOME')) 
+    if sparkpath not in os.environ['PATH']:
+        #print "not in path: sparkpath"
+        os.environ["PATH"] = str("{}/bin:{}".format(sparkpath, os.environ['PATH']))
 
 def checkslots(nodeslots=def_node_slots):
     if nodeslots == def_node_slots:
@@ -214,6 +216,7 @@ def setupnotebook():
         sys.exit(1)
     os.environ['PYSPARK_DRIVER_PYTHON'] = 'jupyter'
     os.environ['PYSPARK_DRIVER_PYTHON_OPTS'] = 'notebook --ip "*" --port 9999 --no-browser'
+    os.environ['JUPYTER_RUNTIME_DIR'] = '/scratch/{}'.format(os.getenv('USER'))
     address = os.getenv('MASTER')[8:][:-5]
     return address 
     
