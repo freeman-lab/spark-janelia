@@ -5,8 +5,8 @@ A script for launching and controlling Spark clusters under a scheduler on an HP
 spark-janelia-lsf is an updated version that works with IBM Spectrum LSF, which will become our new scheduler in the coming months. 
 
 ---
-#### Using Spark
-These scripts automate many of the tasks required to start and manage a Spark job.
+### Using Spark
+These scripts automate many of the tasks required to start and manage a Spark job on an HPC cluster scheduled with LSF. 
 
 #### Initial setup
 Navigate to a location in your home directory where you will store these scripts, then call
