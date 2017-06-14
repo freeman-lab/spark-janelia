@@ -167,7 +167,7 @@ spark-janelia-lsf destroy -j <jobid_of_master>
 
 You can check that these nodes have successfully been released with the `bjobs` command.
 
-####Other options
+#### Other options
 ``` 
 -v|--version {current|test|2|rc}  #Sets version of Spark to use. See the wiki for information about the available versions. 
 -f|--force                        #Skips selection list and/or confirmation of action
@@ -175,7 +175,7 @@ You can check that these nodes have successfully been released with the `bjobs` 
 -i False                          #Unsets ipython as the shell for pyspark
 -t|--sleep-time {minutes}         #Overrides default hard runtime of 8 hours. In LSF this is set in minutes. At the end of this time, the jobs will exit automatically. 
 update                            #Downloads the latest version from github
-
+```
 
 ## Questions and comments
 Please submit a ticket to the HHMI Helpdesk if you run into any issues with this script or Spark clusters. 
