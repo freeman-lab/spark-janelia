@@ -25,9 +25,10 @@ If you want to continue in the same session, source your profile with `source ~/
 
 #### Additional setup for sparkbatch (tightly coupled) usage:
 
-SSH in to one of Janelia's cluster login nodes (see [Scientific Computing](http://wiki.int.janelia.org/wiki/display/ScientificComputing/Janelia+Compute+Cluster) for more information).
+SSH in to a login node.
+
 ```
-ssh login2.int.janelia.org
+ssh login2
 ```
 If you have never done so, set up keyless SSH
 ```
@@ -56,7 +57,7 @@ spark-janelia-lsf stopcluster
 
 ---
 ### Details and more complex use cases
-While logged in to one of Janelia cluster's login nodes, submit a request to run a group of nodes as a Spark cluster using:
+While logged in to a login nodes, submit a request to run a group of nodes as a Spark cluster using:
 ```
 spark-janelia-lsf launch -n <number_of_workers>
 ```
@@ -154,7 +155,7 @@ If you would like to use the Jupyter notebook for non-Spark related work, we als
 setup-notebook-janelia
 ```
 
-This will configure your Jupyer Notebook settings to be compatible with Janelia's cluster. Then, from any node, you can start a server with
+This will configure your Jupyer Notebook settings to launch a notebook server. Then, from any node, you can start a server with
 ```
 jupyter notebook
 ```
