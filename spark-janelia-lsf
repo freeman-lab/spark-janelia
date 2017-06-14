@@ -171,12 +171,15 @@ def login(nodeslots):
     
 def submit(jobID, nodeslots, sparkcommand):
     getenvironment()
-    options = checkslots(nodeslots)
+    outopts = ''
+    if args.driveroutfile is not '':
+        outopts = '-o {}'.format(args.driveroutfile)
+    options = "-n {} {}".format(checkslots(nodeslots), outopts)
     if args.sleep_time is None:
         runtime = "8:00"
     else:
         runtime = args.sleep_time
-    command = "bsub -W {} -n {} -J D{} \"{}\"".format(runtime, options, jobID, sparkcommand) 
+    command = "bsub -W {} {} -J D{} \"{}\"".format(runtime, options, jobID, sparkcommand) 
     rawout = subprocess.check_output(command, shell=True)
     driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
     return driverJobID
@@ -354,6 +357,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--sleep_time", type=int, default=None, required=False)
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
     parser.add_argument("-f", "--force", action="store_true")
+    parser.add_argument("-o", "--driveroutfile", type=str, default='', required=False)
     parser.add_argument("-d", "--driverslots", type=int, default=def_node_slots, required=False)
                         
     args = parser.parse_args()
@@ -405,6 +409,7 @@ if __name__ == "__main__":
         #print '\n\nspark master: {}\n'.format(master)
         os.environ['MASTER'] = "spark://{}:7077".format(master)
         address = setupnotebook()
+        args.driveroutfile = '/dev/null'
         driverjobID = submit(jobID, int(args.driverslots), "pyspark")
         #print driverjobID
         time.sleep(10)
