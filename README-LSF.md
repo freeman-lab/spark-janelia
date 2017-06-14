@@ -96,6 +96,8 @@ spark-janelia-lsf submit -s <submit_arguments>
 ```
 Where `submit_arguments` is a string of arguments you would normally pass to `spark-submit`, as described in the [Spark documentation](https://spark.apache.org/docs/1.2.0/submitting-applications.html).
 
+submit will now submit a separate job to a driver node rather than sshing to the master node and potentially overrunning the available resources. 
+
 #### Running a Spark application with automatic shut down of the Spark cluster after completion
 If you want to run an application with unknown runtime
 it will be helpful to have the Spark cluster shut down automatically after completion of the application.
