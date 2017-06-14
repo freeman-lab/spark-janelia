@@ -206,6 +206,7 @@ def start(command = 'pyspark'):
         os.environ['PYSPARK_DRIVER_PYTHON'] = 'ipython'
     if args.notebook is True:
         address = setupnotebook()
+        os.environ['JUPYTER_RUNTIME_DIR'] = '/scratch/{}'.format(os.getenv('USER'))
         print('\n')
         print('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999')
         print('View the status of your cluster at http://' + address + ':8080')
