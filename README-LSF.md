@@ -183,10 +183,11 @@ You can check that these nodes have successfully been released with the `bjobs` 
 -f|--force                        #Skips selection list and/or confirmation of action
 -d|--driverslots {16|32}          #Sets number of slots to use on a driver job. Only available in whole node increments (16 or 32 slots)
 -i False                          #Unsets ipython as the shell for pyspark
--t|--sleep-time {minutes}         #Overrides default hard runtime of 8 hours. In LSF this is set in minutes. At the end of this time, the jobs will exit automatically. 
+-t|--hard_runtime {minutes}         #Overrides default hard runtime of 8 hours. In LSF this is set in minutes. At the end of this time, the jobs will exit automatically. 
 -o|--driveroutfile {/path/to/output}  #Adds output file for submission. If set to /dev/null, will prevent email from being sent on Driver close.
 update                            #Downloads the latest version from github
 ```
+NOTE: sleep_time has been changed to hard_runtime to more accurately reflect the purpose of this option. 
 ---
 ## Questions and comments
 Please submit a ticket to the HHMI Helpdesk if you run into any issues with this script or Spark clusters. 
