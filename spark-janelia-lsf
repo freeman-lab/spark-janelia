@@ -11,8 +11,8 @@ import traceback
 from distutils import spawn
 
 #########Variables to change for cluster environment
-def_node_slots = 16
-def_options = "-R \"sandy\""
+default_node_slots = 16
+default_options = "-R \"sandy\""
 alt_slots = 32
 alt_options = ""
 queue = 'spark'
@@ -23,6 +23,7 @@ SPARKVERSIONS = {
     '2': '/misc/local/spark-2'
 }                   
 defaultversion = 'current'
+default_runlimit = '8:00'
 ####################################################
 
 def getmasterbyjobID(jobID):
@@ -71,7 +72,7 @@ def getdriversbymasterID(masterID):
 
 def launchall(runtime):
     sparktype = args.version
-    slots = def_node_slots + args.nnodes*def_node_slots
+    slots = default_node_slots + args.nnodes*default_node_slots
     if runtime == "None":
         options = "-n {}".format(slots)
     else:
@@ -94,14 +95,16 @@ def launch(runtime):
             startworker(sparktype, masterjobID, runtime)
     except:
         print "Worker launch failed"
-        #traceback.print_exc()
+        traceback.print_exc()
         sys.exit(1)
     return masterjobID
 
 def startmaster(sparktype, runtime):
-    options = None
+    options = ''
     if runtime is not None:
         options = "-W {}".format(runtime)
+    if args.project is not None: 
+        options += ' -P {}'.format(args.project)
     #bsub requires argument for command, but the esub replaces it automatically
     process = subprocess.Popen(["bsub -a \"spark(master,{})\" {} commandstring".format(sparktype,options)], shell=True, stdout=subprocess.PIPE)
     rawout = process.communicate()
@@ -124,11 +127,12 @@ def startworker(sparktype, masterjobID, runtime):
                 sys.exit(0)
             else:
                 time.sleep(60)
-
+    options = ''
     if runtime is not None:
-        command = "bsub -a \"spark(worker,{})\" -J W{} -W {} commandstring".format(sparktype,masterjobID,runtime)
-    else:
-        command = "bsub -a \"spark(worker,{})\" -J W{} commandstring".format(sparktype,masterjobID,runtime)
+        options = "-W {}".format(runtime)
+    if args.project is not None: 
+        options += ' -P {}'.format(args.project)
+    command = "bsub -a \"spark(worker,{})\" -J W{} {} commandstring".format(sparktype,masterjobID, options)
     os.system(command)
 
 def getenvironment():
@@ -153,33 +157,37 @@ def getenvironment():
         #print "not in path: sparkpath"
         os.environ["PATH"] = str("{}/bin:{}".format(sparkpath, os.environ['PATH']))
 
-def checkslots(nodeslots=def_node_slots):
-    if nodeslots == def_node_slots:
-        options = "{} {}".format(def_node_slots, def_options)
+def checkslots(nodeslots=default_node_slots):
+    if nodeslots == default_node_slots:
+        options = "{} {}".format(default_node_slots, default_options)
     elif nodeslots == alt_slots:
         options = "{} {}".format(alt_slots, alt_options)
     else: 
-        print "You must request an entire node for a Driver job. Please request {} or {} slots.".format(def_node_slots, alt_slots)
+        print "You must request an entire node for a Driver job. Please request {} or {} slots.".format(default_node_slots, alt_slots)
         sys.exit()
     return options
 
 def login(nodeslots):
     getenvironment()
     options = checkslots(nodeslots)
+    if args.project is not None: 
+        options += ' -P {}'.format(args.project)
     command = "bsub -Is -n {} /bin/bash".format(options)
+    print command
     os.system(command)
     
 def submit(jobID, nodeslots, sparkcommand):
     getenvironment()
-    outopts = ''
-    if args.driveroutfile is not '':
-        outopts = '-o {}'.format(args.driveroutfile)
-    options = "-n {} {}".format(checkslots(nodeslots), outopts)
     if args.hard_runtime is None:
-        runtime = "8:00"
+        runtime = default_runlimit
     else:
         runtime = args.hard_runtime
-    command = "bsub -W {} {} -J D{} \"{}\"".format(runtime, options, jobID, sparkcommand) 
+    options = "-n {} -W {}".format(checkslots(nodeslots), runtime)
+    if args.driveroutfile is not '':
+        options += ' -o {}'.format(args.driveroutfile)
+    if args.project is not None:
+        options += ' -P {}'.format(args.project)
+    command = "bsub {} -J D{} \"{}\"".format(options, jobID, sparkcommand) 
     rawout = subprocess.check_output(command, shell=True)
     driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
     return driverJobID
@@ -359,7 +367,8 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
     parser.add_argument("-f", "--force", action="store_true")
     parser.add_argument("-o", "--driveroutfile", type=str, default='', required=False)
-    parser.add_argument("-d", "--driverslots", type=int, default=def_node_slots, required=False)
+    parser.add_argument("-d", "--driverslots", type=int, default=default_node_slots, required=False)
+    parser.add_argument("-P", "--project", type=str, default=None, required=False)
                         
     args = parser.parse_args()
                         
