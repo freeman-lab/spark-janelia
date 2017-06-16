@@ -175,10 +175,10 @@ def submit(jobID, nodeslots, sparkcommand):
     if args.driveroutfile is not '':
         outopts = '-o {}'.format(args.driveroutfile)
     options = "-n {} {}".format(checkslots(nodeslots), outopts)
-    if args.sleep_time is None:
+    if args.hard_runtime is None:
         runtime = "8:00"
     else:
-        runtime = args.sleep_time
+        runtime = args.hard_runtime
     command = "bsub -W {} {} -J D{} \"{}\"".format(runtime, options, jobID, sparkcommand) 
     rawout = subprocess.check_output(command, shell=True)
     driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
@@ -225,7 +225,7 @@ def setupnotebook():
     return address 
     
 def launchAndWait():
-        jobID  = launch(args.sleep_time)
+        jobID  = launch(args.hard_runtime)
         master = ''     
         while( master == '' ):
             master = getmasterbyjobID(jobID)
@@ -355,7 +355,7 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--notebook", action="store_true")
     parser.add_argument("-v", "--version", choices=versiontypes, default=defaultversion, required=False)
     parser.add_argument("-j", "--jobID", type=int, default=None, required=False)
-    parser.add_argument("-t", "--sleep_time", type=int, default=None, required=False)
+    parser.add_argument("-t", "--hard_runtime", type=int, default=None, required=False)
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
     parser.add_argument("-f", "--force", action="store_true")
     parser.add_argument("-o", "--driveroutfile", type=str, default='', required=False)
@@ -367,12 +367,12 @@ if __name__ == "__main__":
         skipcheckstop = True
 
     if args.task == 'launch':
-        masterjobID = launch(args.sleep_time)
+        masterjobID = launch(args.hard_runtime)
         masterurl = "spark://{}:7077".format(getmasterbyjobID(masterjobID))
         print "To set $MASTER environment variable, enter export MASTER={} at the command line.".format(masterurl)
                         
     if args.task == 'launchall':
-        masterjobID = launchall(str(args.sleep_time))
+        masterjobID = launchall(str(args.hard_runtime))
 
     elif args.task == 'login':
         login(int(args.driverslots))         
@@ -429,7 +429,7 @@ if __name__ == "__main__":
         else:
             masterjobID = args.jobID
         for node in range(args.nnodes):
-            startworker(args.version, masterjobID, args.sleep_time)
+            startworker(args.version, masterjobID, args.hard_runtime)
 
     elif args.task == 'remove-workers':
         if args.jobID is None:
