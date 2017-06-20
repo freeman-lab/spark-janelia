@@ -39,14 +39,25 @@ def getallmasters():
     masters = []
     command = "bjobs -X -noheader -J master -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
     bjobsout = subprocess.check_output(command, shell=True)
-    if not bjobsout: 
-        print "No masters found. Please specify job ID for sparkbatch jobs."
-        sys.exit()
     for outline in bjobsout.splitlines():
         outline = outline.split()
         masterdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].split('*')[1]}
         masters.append(masterdict)
     return masters
+
+def getsparkbatchmasters():
+    sbmasters = []
+    command = "bjobs -X -noheader -app sparkbatch -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
+    bjobsout = subprocess.check_output(command, shell=True)
+    print bjobsout
+    for outline in bjobsout.splitlines():
+        outline = outline.split()
+        masterhost = outline[2].split(':')[0]
+        masterdict = {'jobid':outline[0], 'status':outline[1], 'host':masterhost.split('*')[1]}
+        print masterdict
+        sbmasters.append(masterdict)
+    return sbmasters
+
 
 def getworkersbymasterID(masterID):
     workers = []
@@ -457,6 +468,11 @@ if __name__ == "__main__":
             masterjobID = args.jobID
         else: 
             masterlist = getallmasters()
+            sbmasterlist = getsparkbatchmasters()
+            masterlist = masterlist + sbmasterlist
+            if len(masterlist) == 0 : 
+                print "No masters found."
+                sys.exit(0)
             masterjobID = selectionlist(masterlist,'master')
         if not skipcheckstop:
             checkstop(masterjobID, 'master')
