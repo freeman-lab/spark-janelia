@@ -10,6 +10,12 @@ import multiprocessing
 import traceback
 from distutils import spawn
 
+####for python2/3 compatibility
+try:
+    input = raw_input
+except NameError:
+    pass
+
 #########Variables to change for cluster environment
 default_node_slots = 16
 default_options = "-R \"sandy\""
@@ -28,7 +34,7 @@ default_runlimit = '8:00'
 
 def getmasterbyjobID(jobID):
     masterhost = None
-    bjobsout = subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", shell=True)
+    bjobsout = subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
     masters = bjobsout.splitlines()
     for master in masters:
         if str(jobID) in master.split()[0]:
@@ -38,7 +44,7 @@ def getmasterbyjobID(jobID):
 def getallmasters():
     masters = []
     command = "bjobs -X -noheader -J master -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
-    bjobsout = subprocess.check_output(command, shell=True)
+    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
     for outline in bjobsout.splitlines():
         outline = outline.split()
         masterdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].split('*')[1]}
@@ -48,7 +54,7 @@ def getallmasters():
 def getsparkbatchmasters():
     sbmasters = []
     command = "bjobs -X -noheader -app sparkbatch -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
-    bjobsout = subprocess.check_output(command, shell=True)
+    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
     print bjobsout
     for outline in bjobsout.splitlines():
         outline = outline.split()
@@ -63,7 +69,7 @@ def getworkersbymasterID(masterID):
     workers = []
     command = "bjobs -X -noheader -J W{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
     #print command
-    bjobsout = subprocess.check_output(command, shell=True)
+    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
     for outline in bjobsout.splitlines():
     #   print outline
         outline = outline.split()
@@ -74,7 +80,7 @@ def getworkersbymasterID(masterID):
 def getdriversbymasterID(masterID):
     drivers = []
     command = "bjobs -X -noheader -J D{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
-    bjobsout = subprocess.check_output(command, shell=True)
+    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
     for outline in bjobsout.splitlines():
         outline = outline.split()
         driverdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].split('*')[1]}
@@ -89,7 +95,7 @@ def launchall(runtime):
     else:
         options = "-n {} -W {}".format(slots,runtime)
     #bsub requires argument for command, but the esub replaces it automatically
-    output = subprocess.check_output(["bsub -a \"sparkbatch({})\" -J sparkbatch {} commandstring".format(sparktype,options)], shell=True)
+    output = subprocess.check_output(["bsub -a \"sparkbatch({})\" -J sparkbatch {} commandstring".format(sparktype,options)], universal_newlines=True, shell=True)
     print 'Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots)
     jobID = output[1].lstrip("<").rstrip(">")
     return jobID
@@ -116,12 +122,14 @@ def startmaster(sparktype, runtime):
         options = "-W {}".format(runtime)
     if args.project is not None: 
         options += ' -P {}'.format(args.project)
-    #bsub requires argument for command, but the esub replaces it automatically
-    process = subprocess.Popen(["bsub -a \"spark(master,{})\" {} commandstring".format(sparktype,options)], shell=True, stdout=subprocess.PIPE)
-    rawout = process.communicate()
     try:
-        masterjobID = rawout[0].split(" ")[1].lstrip("<").rstrip(">")
+        #bsub requires argument for command, but the esub replaces it automatically
+        command = "bsub -a \"spark(master,{})\" {} commandstring".format(sparktype,options)
+        rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
+        masterjobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
     except:
+        print "Master launch failed."
+        traceback.print_exc()
         sys.exit(1)
     print "Master submitted. Job ID is {}".format(masterjobID)
     return masterjobID
@@ -143,9 +151,15 @@ def startworker(sparktype, masterjobID, runtime):
         options = "-W {}".format(runtime)
     if args.project is not None: 
         options += ' -P {}'.format(args.project)
-    command = "bsub -a \"spark(worker,{})\" -J W{} {} commandstring".format(sparktype,masterjobID, options)
-    os.system(command)
-
+    try: 
+        command = "bsub -a \"spark(worker,{})\" -J W{} {} commandstring".format(sparktype,masterjobID, options)
+        rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
+        workerjobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
+        print("Worker submitted. Job ID is {}".format(workerjobID))
+    except:
+        print "Worker launch failed."
+        traceback.print_exc()
+        
 def getenvironment():
     #Set MASTER
     if "MASTER" not in os.environ:
@@ -158,7 +172,7 @@ def getenvironment():
 
     #Set SPARK_HOME
     if "SPARK_HOME" not in os.environ:
-        versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' -r -m {}".format(masterhost), shell=True)
+        versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' -r -m {}".format(masterhost), universal_newlines=True, shell=True)
         verspath = SPARKVERSIONS[versout.split()[1]]
         os.environ["SPARK_HOME"] = str(verspath) 
 
@@ -199,7 +213,7 @@ def submit(jobID, nodeslots, sparkcommand):
     if args.project is not None:
         options += ' -P {}'.format(args.project)
     command = "bsub {} -J D{} \"{}\"".format(options, jobID, sparkcommand) 
-    rawout = subprocess.check_output(command, shell=True)
+    rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
     driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
     return driverJobID
 
@@ -260,7 +274,7 @@ def submitAndDestroy(jobID, driverslots, sparksubargs):
     driverjobID = submit(jobID, driverslots, sparksubargs)
     drivercomplete = False
     while not drivercomplete:
-        driverstat = subprocess.check_output("bjobs -noheader -o 'STAT' {}".format(driverjobID), shell=True)
+        driverstat = subprocess.check_output("bjobs -noheader -o 'STAT' {}".format(driverjobID), universal_newlines=True, shell=True)
         if driverstat is "EXIT" or "DONE":
             drivercomplete = True
         time.sleep(30)
@@ -270,7 +284,7 @@ def checkforupdate():
     currentdir = os.getcwd()
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(scriptdir)
-    output = subprocess.check_output('git fetch --dry-run 2>&1', shell=True) 
+    output = subprocess.check_output('git fetch --dry-run 2>&1', universal_newlines=True, shell=True) 
     if "origin" in output: 
         reply = raw_input("This script is not up to date. Would you like to update now? (y/n) ")
         if reply == 'y':
@@ -434,7 +448,7 @@ if __name__ == "__main__":
         driverjobID = submit(jobID, int(args.driverslots), "pyspark")
         #print driverjobID
         time.sleep(10)
-        driverhost = subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), shell=True)
+        driverhost = subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), universal_newlines=True, shell=True)
         #print driverhost
         print "Jupyter notebook at http://{}:9999".format(driverhost[3:].replace('\n',''))
         print "Don't forget to run stopcluster when you exit your notebook. The spark cluster will not exit automatically."
