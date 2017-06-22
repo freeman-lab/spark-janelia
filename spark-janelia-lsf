@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 import os
 import glob
@@ -59,7 +59,6 @@ def getsparkbatchmasters():
         outline = outline.split()
         masterhost = outline[2].split(':')[0]
         masterdict = {'jobid':outline[0], 'status':outline[1], 'host':masterhost.split('*')[1]}
-        print(masterdict)
         sbmasters.append(masterdict)
     return sbmasters
 
@@ -207,9 +206,15 @@ def submit(jobID, nodeslots, sparkcommand):
         options += ' -o {}'.format(args.driveroutfile)
     if args.project is not None:
         options += ' -P {}'.format(args.project)
-    command = "bsub {} -J D{} \"{}\"".format(options, jobID, sparkcommand) 
-    rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
-    driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
+    try:
+        command = "bsub {} -J D{} \"{}\"".format(options, jobID, sparkcommand) 
+        rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
+        driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
+        print('Driver submitted. Job ID is {}'.format(driverJobID))
+    except:
+        print("Driver failed to launch. Cluster is still running.")
+        traceback.print_exc()
+        sys.exit(1)
     return driverJobID
 
 def destroy(jobID):
