@@ -152,45 +152,70 @@ def startworker(sparktype, masterjobid, runtime):
 
 
 def login():
-	masters = findMasters()
-	if len(masters) == 0:
-		print('\n')
-		print >> sys.stderr, "No master found, keep waiting for master to launch"
-		print('\n')
-	else:
-		subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'interactive=true'])
+    status = subprocess.check_output(["qstat", "-xml"])
+    qtree = ET.fromstring(status)[0]
+    jtree = ET.fromstring(status)[1]
+    jobs = qtree.findall('job_list')
+    if len(jobs) == 0:
+        print('\n')
+        print >> sys.stderr, "No running jobs found, keep waiting for jobs to launch"
+        print('\n')
+    else:
+        address = None
+        for job in jobs:
+            procname = job.find('JB_name').text
+            jclass = job.find('jclass_name').text
+            state = job.find('state').text
+            jobid = int(job.find('JB_job_number').text)
+            if jclass and (jclass[:5] == 'spark') and (state == 'r'):
+                if args.jobid:
+                    if jobid == args.jobid:
+                        address = job.find('queue_name').text.split('@')[1]
+                else:
+                    address = job.find('queue_name').text.split('@')[1]
+        if address:
+            filename = os.path.expanduser('~/spark-master')
+            if os.path.exists(filename):
+                os.remove(filename)
+            os.system("echo 'spark://'" + address + ":7077 >> " + os.path.expanduser("~") + "/spark-master")
+            subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'interactive=true'])
+        else:
+            print('\n')
+            print >> sys.stderr, "No Spark job found, check status with qstat, or try a different jobid?"
+            print('\n')
 
-def destroy(jobId):
-	status = subprocess.check_output(["qstat", "-xml"])
-	qtree = ET.fromstring(status)[0]
-	jtree = ET.fromstring(status)[1]
-	jobs = qtree.findall('job_list')
-	if len(jobs) == 0:
-		print('\n')
-		print >> sys.stderr, "No running jobs found"
-		print('\n')
-	else:
-		deleted = 0
-		for job in jobs:
-			procname = job.find('JB_name').text
-			jclass = job.find('jclass_name').text
-			state = job.find('state').text
-			jobid = job.find('JB_job_number').text
-			if (jclass[:5] == 'spark') and (state == 'r'):
-				if jobId and jobid == jobId:
-					output = subprocess.check_output(['qdel', jobid])
-					deleted += 1
-				else:
-					output = subprocess.check_output(['qdel', jobid])
-					deleted += 1
-		if deleted == 0:
-			print('\n')
-			print >> sys.stderr, "No Spark jobs deleted, try a different jobid?"
-			print('\n')
-		else:
-			print('\n')
-			print('Spark jobs successfully deleted')
-			print('\n')
+            
+  def destroy(jobId ):
+    status = subprocess.check_output(["qstat", "-xml"])
+    qtree = ET.fromstring(status)[0]
+    jtree = ET.fromstring(status)[1]
+    jobs = qtree.findall('job_list')
+    if len(jobs) == 0:
+        print('\n')
+        print >> sys.stderr, "No running jobs found"
+        print('\n')
+    else:
+        deleted = 0
+        for job in jobs:
+            procname = job.find('JB_name').text
+            jclass = job.find('jclass_name').text
+            state = job.find('state').text
+            jobid = job.find('JB_job_number').text
+            if (jclass[:5] == 'spark') and (state == 'r'):
+                if jobId and jobid == jobId:
+                    output = subprocess.check_output(['qdel', jobid])
+                    deleted += 1
+                else:
+                    output = subprocess.check_output(['qdel', jobid])
+                    deleted += 1
+        if deleted == 0:
+            print('\n')
+            print >> sys.stderr, "No Spark jobs deleted, try a different jobid?"
+            print('\n')
+        else:
+            print('\n')
+            print('Spark jobs successfully deleted')
+            print('\n')
 
 
 def start():
