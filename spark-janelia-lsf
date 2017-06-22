@@ -292,6 +292,7 @@ def checkforupdate():
             sys.exit()
         else: 
             return
+    os.chdir(currentdir)
 
 def update():
     currentdir = os.getcwd()
