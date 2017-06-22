@@ -298,7 +298,7 @@ def update():
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(scriptdir)
     try:
-        os.system('git pull origin master')
+        os.system('git pull origin py-universal')
         os.system('git pull')
         print("Update successful.")
     except:
