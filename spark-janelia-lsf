@@ -117,8 +117,8 @@ def startmaster(sparktype, runtime):
     options = ''
     if runtime is not None:
         options = "-W {}".format(runtime)
-    if args.project is not None: 
-        options += ' -P {}'.format(args.project)
+    if args.lsf_project is not None: 
+        options += ' -P {}'.format(args.lsf_project)
     try:
         #bsub requires argument for command, but the esub replaces it automatically
         command = "bsub -a \"spark(master,{})\" {} commandstring".format(sparktype,options)
@@ -146,8 +146,8 @@ def startworker(sparktype, masterjobID, runtime):
     options = ''
     if runtime is not None:
         options = "-W {}".format(runtime)
-    if args.project is not None: 
-        options += ' -P {}'.format(args.project)
+    if args.lsf_project is not None: 
+        options += ' -P {}'.format(args.lsf_project)
     try: 
         command = "bsub -a \"spark(worker,{})\" -J W{} {} commandstring".format(sparktype,masterjobID, options)
         rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
@@ -191,8 +191,8 @@ def checkslots(nodeslots=default_node_slots):
 def login(nodeslots):
     getenvironment()
     options = checkslots(nodeslots)
-    if args.project is not None: 
-        options += ' -P {}'.format(args.project)
+    if args.lsf_project is not None: 
+        options += ' -P {}'.format(args.lsf_project)
     command = "bsub -Is -n {} /bin/bash".format(options)
     os.system(command)
     
@@ -205,8 +205,8 @@ def submit(jobID, nodeslots, sparkcommand):
     options = "-n {} -W {}".format(checkslots(nodeslots), runtime)
     if args.driveroutfile is not '':
         options += ' -o {}'.format(args.driveroutfile)
-    if args.project is not None:
-        options += ' -P {}'.format(args.project)
+    if args.lsf_project is not None:
+        options += ' -P {}'.format(args.lsf_project)
     command = "bsub {} -J D{} \"{}\"".format(options, jobID, sparkcommand) 
     rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
     driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
@@ -389,7 +389,7 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--force", action="store_true")
     parser.add_argument("-o", "--driveroutfile", type=str, default='', required=False)
     parser.add_argument("-d", "--driverslots", type=int, default=default_node_slots, required=False)
-    parser.add_argument("-P", "--project", type=str, default=None, required=False)
+    parser.add_argument("-P", "--lsf_project", type=str, default=None, required=False)
                         
     args = parser.parse_args()
                         
