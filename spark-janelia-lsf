@@ -262,6 +262,8 @@ def launchAndWait():
         master = ''     
         while( master == '' ):
             master = getmasterbyjobID(jobID)
+            if master is not '':
+                break
             time.sleep(10) # wait 10 seconds to avoid spamming the cluster
             sys.stdout.write('.')
             sys.stdout.flush()
@@ -437,17 +439,25 @@ if __name__ == "__main__":
 
     elif args.task == 'launch-in':
         master, jobID = launchAndWait()
-        print('\n\nspark master: {}\n'.format(master))
+        print('\n\nspark master UI at: http://{}:8080\n'.format(master))
         login(int(args.driverslots))
 
     elif args.task == 'launch-notebook':
+        driverhost = ''
         master, jobID = launchAndWait()
         os.environ['MASTER'] = "spark://{}:7077".format(master)
         address = setupnotebook()
         args.driveroutfile = '/dev/null'
         driverjobID = submit(jobID, int(args.driverslots), "pyspark")
         time.sleep(10)
-        driverhost = subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), universal_newlines=True, shell=True)
+        while (driverhost == ''):
+            driverhost = str(subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), universal_newlines=True, shell=True))
+            if driverhost is not '':
+                break
+            time.sleep(10) # wait 10 seconds to avoid spamming the cluster
+            sys.stdout.write('.')
+            sys.stdout.flush() 
+
         print("Jupyter notebook at http://{}:9999".format(driverhost[3:].replace('\n','')))
         print("Don't forget to run stopcluster when you exit your notebook. The spark cluster will not exit automatically.")
 
