@@ -275,7 +275,7 @@ def submitAndDestroy(jobID, driverslots, sparksubargs):
     drivercomplete = False
     while not drivercomplete:
         driverstat = subprocess.check_output("bjobs -noheader -o 'STAT' {}".format(driverjobID), universal_newlines=True, shell=True)
-        if driverstat is "EXIT" or "DONE":
+        if str(driverstat) is "EXIT" or "DONE":
             drivercomplete = True
         time.sleep(30)
     destroy(jobID)
