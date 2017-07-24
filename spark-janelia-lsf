@@ -21,6 +21,7 @@ default_node_slots = 16
 default_options = "-R \"sandy\""
 alt_slots = 32
 alt_options = ""
+nonfull_options = "-R\"affinity[core(1)]\""
 queue = 'spark'
 SPARKVERSIONS = {   
     'current': '/misc/local/spark-current/',
@@ -183,8 +184,9 @@ def checkslots(nodeslots=default_node_slots):
     elif nodeslots == alt_slots:
         options = "{} {}".format(alt_slots, alt_options)
     else: 
-        print("You must request an entire node for a Driver job. Please request {} or {} slots.".format(default_node_slots, alt_slots))
-        sys.exit()
+        options = "{} {}".format(nodeslots, nonfull_options)
+       # print("You must request an entire node for a Driver job. Please request {} or {} slots.".format(default_node_slots, alt_slots))
+       # sys.exit()
     return options
 
 def login(nodeslots):
