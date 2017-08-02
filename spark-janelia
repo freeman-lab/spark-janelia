@@ -382,7 +382,6 @@ if __name__ == "__main__":
     versiontypes = list(SPARKVERSIONS.keys())
 
     skipcheckstop = False
-    no_check = False
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
                         
     choices = ('launch', 'launchall', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'launch-notebook', 'update', 'add-workers', 'remove-workers', 'stopcluster')
@@ -403,7 +402,8 @@ if __name__ == "__main__":
                         
     args = parser.parse_args()
                         
-    if not no_check:
+
+    if args.no_check == False:
         checkforupdate()
 
     if args.force == True:
