@@ -184,6 +184,7 @@ You can check that these nodes have successfully been released with the `bjobs` 
 -t|--hard_runtime {minutes}         #Overrides default hard runtime of 8 hours. In LSF this is set in minutes. At the end of this time, the jobs will exit automatically. 
 -o|--driveroutfile {/path/to/output}  #Adds output file for submission. If set to /dev/null, will prevent email from being sent on Driver close.
 -P|--project {project name}       #Sets project to be billed if not users's own group/project.
+--no_check                        #Skips checking for new update on github
 update                            #Downloads the latest version from github
 ```
 NOTE: sleep_time has been changed to hard_runtime to more accurately reflect the purpose of this option. 
