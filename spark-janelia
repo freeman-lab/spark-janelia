@@ -91,7 +91,7 @@ def getdriversbymasterID(masterID):
 def launchall(runtime):
     sparktype = args.version
     slots = default_node_slots + args.nnodes*default_node_slots
-    if runtime == "None":
+    if runtime is None:
         options = "-n {}".format(slots)
     else:
         options = "-n {} -W {}".format(slots,runtime)
@@ -262,9 +262,9 @@ def setupnotebook():
     
 def launchAndWait():
         if args.unified == True: 
-            jobID = launchall(str(args.hard_runtime))
+            jobID = launchall(args.hard_runtime)
         else:
-            jobID  = launch(str(args.hard_runtime))
+            jobID  = launch(args.hard_runtime)
         master = None     
         while master is None:
             master = getmasterbyjobID(jobID)
@@ -420,7 +420,7 @@ if __name__ == "__main__":
         print("To set $MASTER environment variable, enter export MASTER={} at the command line.".format(masterurl))
                         
     if args.task == 'launchall':
-        masterjobID = launchall(str(args.hard_runtime))
+        masterjobID = launchall(args.hard_runtime)
 
     elif args.task == 'login':
         login(int(args.driverslots))         
