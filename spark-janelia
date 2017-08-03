@@ -37,6 +37,13 @@ def getmasterbyjobID(jobID):
     masterhost = None
     bjobsout = subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
     masters = bjobsout.splitlines()
+
+    bjobsoutu = subprocess.check_output("bjobs -Xr -noheader -app sparkbatch -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
+    for outline in bjobsoutu.splitlines():
+        outlist = outline.split(' ')
+        masteruhost = outlist[1].split(':')[0] 
+        listelement = "{} {}".format(outlist[0], masteruhost)
+        masters.append(listelement)
     for master in masters:
         if str(jobID) in master.split()[0]:
             masterhost = master.split('*')[1]
@@ -44,25 +51,22 @@ def getmasterbyjobID(jobID):
 
 def getallmasters():
     masters = []
+    #get normal masters
     command = "bjobs -X -noheader -J master -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
     bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
     for outline in bjobsout.splitlines():
         outline = outline.split()
         masterdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].split('*')[1]}
         masters.append(masterdict)
-    return masters
-
-def getsparkbatchmasters():
-    sbmasters = []
+    #get unified masters
     command = "bjobs -X -noheader -app sparkbatch -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
     bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
     for outline in bjobsout.splitlines():
         outline = outline.split()
         masterhost = outline[2].split(':')[0]
         masterdict = {'jobid':outline[0], 'status':outline[1], 'host':masterhost.split('*')[1]}
-        sbmasters.append(masterdict)
-    return sbmasters
-
+        masters.append(masterdict)
+    return masters
 
 def getworkersbymasterID(masterID):
     workers = []
@@ -94,7 +98,7 @@ def launchall(runtime):
     #bsub requires argument for command, but the esub replaces it automatically
     output = subprocess.check_output(["bsub -a \"sparkbatch({})\" -J sparkbatch {} commandstring".format(sparktype,options)], universal_newlines=True, shell=True)
     print('Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots))
-    jobID = output[1].lstrip("<").rstrip(">")
+    jobID = output.split(" ")[1].lstrip("<").rstrip(">")
     return jobID
 
 def launch(runtime):
@@ -166,7 +170,6 @@ def getenvironment():
         os.environ["MASTER"] = str("spark://{}:7077".format(masterhost))
     else:
         masterhost = os.getenv('MASTER').lstrip("spark://").replace(":7077","")
-
     #Set SPARK_HOME
     if "SPARK_HOME" not in os.environ:
         versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' -r -m {}".format(masterhost), universal_newlines=True, shell=True)
@@ -185,8 +188,6 @@ def checkslots(nodeslots=default_node_slots):
         options = "{} {}".format(alt_slots, alt_options)
     else: 
         options = "{} {}".format(nodeslots, nonfull_options)
-       # print("You must request an entire node for a Driver job. Please request {} or {} slots.".format(default_node_slots, alt_slots))
-       # sys.exit()
     return options
 
 def login(nodeslots):
@@ -260,11 +261,14 @@ def setupnotebook():
     return address 
     
 def launchAndWait():
-        jobID  = launch(args.hard_runtime)
-        master = ''     
-        while( master == '' ):
+        if args.unified == True: 
+            jobID = launchall(str(args.hard_runtime))
+        else:
+            jobID  = launch(str(args.hard_runtime))
+        master = None     
+        while master is None:
             master = getmasterbyjobID(jobID)
-            if master is not '':
+            if master is not None:
                 break
             time.sleep(10) # wait 10 seconds to avoid spamming the cluster
             sys.stdout.write('.')
@@ -399,6 +403,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--driverslots", type=int, default=default_node_slots, required=False)
     parser.add_argument("-P", "--lsf_project", type=str, default=None, required=False)
     parser.add_argument("--no_check", action="store_true")
+    parser.add_argument("--unified", action="store_true")
                         
     args = parser.parse_args()
                         
@@ -496,8 +501,6 @@ if __name__ == "__main__":
             masterjobID = args.jobID
         else: 
             masterlist = getallmasters()
-            sbmasterlist = getsparkbatchmasters()
-            masterlist = masterlist + sbmasterlist
             if len(masterlist) == 0 : 
                 print("No masters found.")
                 sys.exit(0)
