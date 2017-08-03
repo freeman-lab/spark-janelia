@@ -407,6 +407,8 @@ if __name__ == "__main__":
                         
     args = parser.parse_args()
                         
+    elif args.task == 'update':
+        update()
 
     if args.no_check == False:
         checkforupdate()
@@ -472,8 +474,6 @@ if __name__ == "__main__":
         print("Jupyter notebook at http://{}:9999".format(driverhost[3:].replace('\n','')))
         print("Don't forget to run stopcluster when you exit your notebook. The spark cluster will not exit automatically.")
 
-    elif args.task == 'update':
-        update()
 
     elif args.task == 'add-workers':
         if args.jobID is None:
