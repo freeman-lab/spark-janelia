@@ -407,7 +407,7 @@ if __name__ == "__main__":
                         
     args = parser.parse_args()
                         
-    elif args.task == 'update':
+    if args.task == 'update':
         update()
 
     if args.no_check == False:
