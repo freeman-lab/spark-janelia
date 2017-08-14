@@ -274,6 +274,15 @@ def launchAndWait():
             sys.stdout.write('.')
             sys.stdout.flush()
         os.environ["MASTER"] = "spark://{}:7077".format(master)
+        if args.unified == False:
+            runningworkers = False
+            while runningworkers == False:
+                workerlist = getworkersbymasterID(jobID)
+                for worker in workerlist:
+                    if worker['status'] == 'RUN':
+                        print "worker running"
+                        runningworkers = True
+                        break
         return master, jobID
 
 def submitAndDestroy(jobID, driverslots, sparksubargs):
