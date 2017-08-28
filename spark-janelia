@@ -84,7 +84,11 @@ def getdriversbymasterID(masterID):
     bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
     for outline in bjobsout.splitlines():
         outline = outline.split()
-        driverdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].split('*')[1]}
+        try:
+            driverhost = outline[2].split('*')[1]
+        except:
+            driverhost = None
+        driverdict = {'jobid':outline[0], 'status':outline[1], 'host':driverhost}
         drivers.append(driverdict)
     return drivers
 
@@ -209,6 +213,8 @@ def submit(jobID, nodeslots, sparkcommand):
         options += ' -o {}'.format(args.driveroutfile)
     if args.lsf_project is not None:
         options += ' -P {}'.format(args.lsf_project)
+    if args.driveronspark:
+        options += ' -q spark'
     try:
         command = "bsub {} -J D{} \"{}\"".format(options, jobID, sparkcommand) 
         rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
@@ -390,6 +396,30 @@ def selectionlist(joblist, jobtype):
                 print("Invalid selection.")
         return jobID
 
+def checkfordriver(driverjobID, masterjobID):
+    driverhost = '-'
+    while '-' in driverhost:
+        driverhost = str(subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), universal_newlines=True, shell=True)).rstrip()
+        if '-' not in driverhost:
+            return driverhost
+        else:
+            print('Driver not started yet. Please select action: ')
+            print('1) Wait 60 seconds and check again.')
+            print('2) Exit to command line. The cluster will continue running and the driver will remain in the queue.')
+            print('3) Terminate cluster')
+            while True:
+                selection = int(input("Selection? "))
+                if selection == 1:
+                    time.sleep(60)
+                    break
+                elif selection == 2:
+                    sys.exit()
+                elif selection == 3:
+                    destroy(masterjobID)
+                    sys.exit()
+                else:
+                    print("Invalid selection.")
+
 if __name__ == "__main__":
 
     versiontypes = list(SPARKVERSIONS.keys())
@@ -413,6 +443,7 @@ if __name__ == "__main__":
     parser.add_argument("-P", "--lsf_project", type=str, default=None, required=False)
     parser.add_argument("--no_check", action="store_true")
     parser.add_argument("--unified", action="store_true")
+    parser.add_argument("--driveronspark", action="store_true")
                         
     args = parser.parse_args()
                         
@@ -465,21 +496,23 @@ if __name__ == "__main__":
         login(int(args.driverslots))
 
     elif args.task == 'launch-notebook':
-        driverhost = ''
+        driverhost = '-'
         master, jobID = launchAndWait()
         os.environ['MASTER'] = "spark://{}:7077".format(master)
         address = setupnotebook()
         args.driveroutfile = '/dev/null'
         driverjobID = submit(jobID, int(args.driverslots), "pyspark")
         time.sleep(10)
-        while (driverhost == ''):
-            driverhost = str(subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), universal_newlines=True, shell=True))
-            if driverhost is not '':
-                break
-            time.sleep(10) # wait 10 seconds to avoid spamming the cluster
-            sys.stdout.write('.')
-            sys.stdout.flush() 
-
+        driverhost = checkfordriver(driverjobID, jobID)
+#        while (driverhost == '-'):
+#            driverhost = str(subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), universal_newlines=True, shell=True)).rstrip()
+#            if '-' not in driverhost:
+#                break
+#            else:
+#                print('Driver not started yet. Please select action: ')
+#            time.sleep(10) # wait 10 seconds to avoid spamming the cluster
+#            sys.stdout.write('.')
+#            sys.stdout.flush() 
         print("Jupyter notebook at http://{}:9999".format(driverhost[3:].replace('\n','')))
         print("Don't forget to run stopcluster when you exit your notebook. The spark cluster will not exit automatically.")
 
