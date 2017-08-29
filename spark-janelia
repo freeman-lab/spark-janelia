@@ -267,29 +267,39 @@ def setupnotebook():
     return address 
     
 def launchAndWait():
-        if args.unified == True: 
-            jobID = launchall(args.hard_runtime)
-        else:
-            jobID  = launch(args.hard_runtime)
-        master = None     
-        while master is None:
-            master = getmasterbyjobID(jobID)
-            if master is not None:
-                break
-            time.sleep(10) # wait 10 seconds to avoid spamming the cluster
-            sys.stdout.write('.')
-            sys.stdout.flush()
-        os.environ["MASTER"] = "spark://{}:7077".format(master)
-        if args.unified == False:
-            runningworkers = False
-            while runningworkers == False:
-                workerlist = getworkersbymasterID(jobID)
-                for worker in workerlist:
-                    if worker['status'] == 'RUN':
-                        print "worker running"
-                        runningworkers = True
-                        break
-        return master, jobID
+    if args.unified == True: 
+        jobID = launchall(args.hard_runtime)
+    else:
+        jobID  = launch(args.hard_runtime)
+    master = None     
+    while master is None:
+        master = getmasterbyjobID(jobID)
+        if master is not None:
+            break
+        time.sleep(10) # wait 10 seconds to avoid spamming the cluster
+        sys.stdout.write('.')
+        sys.stdout.flush()
+    os.environ["MASTER"] = "spark://{}:7077".format(master)
+    if args.unified == False:
+        enoughworkers = False
+        while enoughworkers == False:
+            time.sleep(10)
+            workerlist = getworkersbymasterID(jobID)
+            rworkercount = len([worker for worker in  workerlist if worker['status'] == 'RUN'])
+            #print rworkercount
+            if rworkercount > args.minworkers:
+                print('Sufficient workers')
+                enoughworkers = True
+
+       # runningworkers = False
+       # while runningworkers == False:
+       #     workerlist = getworkersbymasterID(jobID)
+       #     for worker in workerlist:
+       #         if worker['status'] == 'RUN':
+       #             print "worker running"
+       #             runningworkers = True
+       #             break
+    return master, jobID
 
 def submitAndDestroy(jobID, driverslots, sparksubargs):
     master=getmasterbyjobID(jobID)
@@ -444,6 +454,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_check", action="store_true")
     parser.add_argument("--unified", action="store_true")
     parser.add_argument("--driveronspark", action="store_true")
+    parser.add_argument("--minworkers", type=int, default=1, required=False)
                         
     args = parser.parse_args()
                         

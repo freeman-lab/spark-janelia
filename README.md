@@ -186,6 +186,8 @@ You can check that these nodes have successfully been released with the `bjobs` 
 -P|--project {project name}       #Sets project to be billed if not users's own group/project.
 --no_check                        #Skips checking for new update on github
 --unified                         #Launches a cluster in the single-job method (aka sparkbatch) for launch-in & lsd
+--minworkers					  #Set a minimum number of running workers before a driver launches for launch-in, launch-notebook, and lsd
+--driveronspark					  #Attempt to run a driver on a node in the spark queue
 update                            #Downloads the latest version from github
 ```
 NOTE: sleep_time has been changed to hard_runtime to more accurately reflect the purpose of this option. 
