@@ -197,6 +197,8 @@ def checkslots(nodeslots=default_node_slots):
 def login(nodeslots):
     getenvironment()
     options = checkslots(nodeslots)
+    if args.driveronspark:
+        options += ' -q spark'
     if args.lsf_project is not None: 
         options += ' -P {}'.format(args.lsf_project)
     command = "bsub -Is -n {} /bin/bash".format(options)
