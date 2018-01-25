@@ -216,7 +216,7 @@ def submit(jobID, nodeslots, sparkcommand):
     if args.lsf_project is not None:
         options += ' -P {}'.format(args.lsf_project)
     if args.driveronspark:
-        options += ' -q spark'
+        options += ' -q spark-drivers'
     try:
         command = "bsub {} -J D{} \"{}\"".format(options, jobID, sparkcommand) 
         rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
