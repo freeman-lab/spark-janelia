@@ -372,8 +372,12 @@ def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):
 
 def bkilljob(jobID):
     command = "bkill {}".format(jobID)
-    os.system(command)
-
+    try:
+        bkillout = subprocess.check_output(command, universal_newlines=True, shell=True)
+        print(bkillout)
+    except Exception,excpt:
+        print("Failed to kill job {}:".format(jobID))
+        traceback.print_exc()
 
 def checkstop(inval, jobtype):
     if jobtype == "master":
