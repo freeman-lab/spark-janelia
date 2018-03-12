@@ -375,7 +375,7 @@ def bkilljob(jobID):
     try:
         bkillout = subprocess.check_output(command, universal_newlines=True, shell=True)
         print(bkillout)
-    except Exception,excpt:
+    except:
         print("Failed to kill job {}:".format(jobID))
         traceback.print_exc()
 
