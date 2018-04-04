@@ -183,7 +183,7 @@ You can check that these nodes have successfully been released with the `bjobs` 
 -i False                          #Unsets ipython as the shell for pyspark
 -t|--hard_runtime {minutes}         #Overrides default hard runtime of 8 hours. In LSF this is set in minutes. At the end of this time, the jobs will exit automatically. 
 -o|--driveroutfile {/path/to/output}  #Adds output file for submission. If set to /dev/null, will prevent email from being sent on Driver close.
--P|--project {project name}       #Sets project to be billed if not users's own group/project.
+-P|--lsf_project {project name}       #Sets project to be billed if not users's own group/project.
 --no_check                        #Skips checking for new update on github
 --unified                         #Launches a cluster in the single-job method (aka sparkbatch) for launch-in & lsd
 --minworkers					  #Set a minimum number of running workers before a driver launches for launch-in, launch-notebook, and lsd
