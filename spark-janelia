@@ -99,6 +99,9 @@ def launchall(runtime):
         options = "-n {}".format(slots)
     else:
         options = "-n {} -W {}".format(slots,runtime)
+
+    if args.lsf_project is not None: 
+        options += ' -P {}'.format(args.lsf_project)
     #bsub requires argument for command, but the esub replaces it automatically
     output = subprocess.check_output(["bsub -a \"sparkbatch({})\" -J sparkbatch {} commandstring".format(sparktype,options)], universal_newlines=True, shell=True)
     print('Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots))
