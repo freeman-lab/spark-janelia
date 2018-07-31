@@ -333,12 +333,13 @@ def checkforupdate():
     output = subprocess.check_output('git fetch --dry-run 2>&1', universal_newlines=True, shell=True) 
     os.chdir(currentdir)
     if "origin" in output: 
-        reply = input("This script is not up to date. Would you like to update now? (y/n) ")
-        if reply == 'y':
-            update()
-            sys.exit()
-        else: 
-            return
+         print("This script is not up to date. To update the script, run spark-janelia update.")
+#        reply = input("This script is not up to date. Would you like to update now? (y/n) ")
+#        if reply == 'y':
+#            update()
+#            sys.exit()
+#        else: 
+#            return
 
 def update():
     currentdir = os.getcwd()
