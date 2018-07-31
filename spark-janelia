@@ -23,15 +23,23 @@ alt_slots = 32
 alt_options = ""
 nonfull_options = "-R\"affinity[core(1)]\""
 queue = 'spark'
-SPARKVERSIONS = {   
-    'current': '/misc/local/spark-current/',
-    'rc': '/misc/local/spark-rc/',
-    'test': '/misc/local/spark-test',
-    '2': '/misc/local/spark-2'
-}                   
+#SPARKVERSIONS = {   
+#    'current': '/misc/local/spark-current/',
+#    'rc': '/misc/local/spark-rc/',
+#    'test': '/misc/local/spark-test',
+#    '2': '/misc/local/spark-2'
+#}                   
 defaultversion = 'current'
 default_runlimit = '8:00'
 ####################################################
+
+def getavailableversions():
+    SPARKVERSIONS = {}
+    verslocation = subprocess.check_output('find /misc/local -maxdepth 1 -name "spark-*" -not -name spark-versions 2> /dev/null', universal_newlines=True, shell=True).split()
+    for location in verslocation:
+       verskey = location.split('-')[1]
+       SPARKVERSIONS[verskey] = location
+    return SPARKVERSIONS
 
 def getmasterbyjobID(jobID):
     masterhost = None
@@ -441,6 +449,7 @@ def checkfordriver(driverjobID, masterjobID):
 
 if __name__ == "__main__":
 
+    SPARKVERSIONS = getavailableversions()
     versiontypes = list(SPARKVERSIONS.keys())
 
     skipcheckstop = False
