@@ -18,7 +18,7 @@ except NameError:
 
 #########Variables to change for cluster environment
 default_node_slots = 16
-default_options = "-R \"sandy\""
+default_options = "-q spark-drivers"
 alt_slots = 32
 alt_options = ""
 nonfull_options = "-R\"affinity[core(1)]\""
