@@ -156,12 +156,12 @@ def startworker(sparktype, masterjobID, runtime):
     while masterURL is None:
         masterURL = getmasterbyjobID(masterjobID)
         if masterURL is None: 
-            waitformaster = input("No master with the job id {} running. Do you want to wait for it to start? (y/n) ".format(masterjobID))
-            if waitformaster == 'n':
-                print("Master may be orphaned. Please check your submitted jobs.")
-                sys.exit(0)
-            else:
-                time.sleep(60)
+            if not args.silentlaunch:
+                waitformaster = input("No master with the job id {} running. Do you want to wait for it to start? (y/n) ".format(masterjobID))
+                if waitformaster == 'n':
+                    print("Master may be orphaned. Please check your submitted jobs.")
+                    sys.exit(0)
+            time.sleep(60)
     options = ''
     if runtime is not None:
         options = "-W {}".format(runtime)
@@ -473,6 +473,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_check", action="store_true")
     parser.add_argument("--unified", action="store_true")
     parser.add_argument("--driveronspark", action="store_true")
+    parser.add_argument("--silentlaunch", action="store_true")
     parser.add_argument("--minworkers", type=int, default=1, required=False)
                         
     args = parser.parse_args()
