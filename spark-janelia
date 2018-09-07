@@ -207,22 +207,18 @@ def checkslots(nodeslots=default_node_slots):
         options = "{} {}".format(nodeslots, nonfull_options)
     return options
 
-def login(nodeslots):
+def login(nodeslots, runtime):
     getenvironment()
     options = checkslots(nodeslots)
     if args.driveronspark:
         options += ' -q spark-drivers'
     if args.lsf_project is not None: 
         options += ' -P {}'.format(args.lsf_project)
-    command = "bsub -Is -n {} /bin/bash".format(options)
+    command = "bsub -Is -n {} -W {} /bin/bash".format(options, runtime)
     os.system(command)
     
-def submit(jobID, nodeslots, sparkcommand):
+def submit(jobID, nodeslots, sparkcommand, runtime):
     getenvironment()
-    if args.hard_runtime is None:
-        runtime = default_runlimit
-    else:
-        runtime = args.hard_runtime
     options = "-n {} -W {}".format(checkslots(nodeslots), runtime)
     if args.driveroutfile is not '':
         options += ' -o {}'.format(args.driveroutfile)
@@ -232,6 +228,7 @@ def submit(jobID, nodeslots, sparkcommand):
         options += ' -q spark-drivers'
     try:
         command = "bsub {} -J D{} \"{}\"".format(options, jobID, sparkcommand) 
+        print(command)
         rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
         driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
         print('Driver submitted. Job ID is {}'.format(driverJobID))
@@ -316,10 +313,10 @@ def launchAndWait():
        #             break
     return master, jobID
 
-def submitAndDestroy(jobID, driverslots, sparksubargs):
+def submitAndDestroy(jobID, driverslots, sparksubargs, runtime):
     master=getmasterbyjobID(jobID)
     os.environ["MASTER"] = "spark://{}:7077".format(master)
-    driverjobID = submit(jobID, driverslots, sparksubargs)
+    driverjobID = submit(jobID, driverslots, sparksubargs, runtime)
     drivercomplete = False
     while not drivercomplete:
         driverstat = subprocess.check_output("bjobs -noheader -o 'STAT' {}".format(driverjobID), universal_newlines=True, shell=True)
@@ -502,7 +499,7 @@ if __name__ == "__main__":
         masterjobID = launchall(args.hard_runtime)
 
     elif args.task == 'login':
-        login(int(args.driverslots))         
+        login(int(args.driverslots), args.hard_runtime)         
                         
     elif args.task == 'destroy':
         destroy(args.jobID or '')
@@ -515,7 +512,7 @@ if __name__ == "__main__":
                         
     elif args.task == 'submit':
         sparksubargs = 'spark-submit {}'.format(args.submitargs)
-        submit(args.jobID, int(args.driverslots), sparksubargs)
+        submit(args.jobID, int(args.driverslots), sparksubargs, args.hard_runtime)
                         
     elif args.task == 'lsd':
         master, jobID = launchAndWait()
@@ -530,7 +527,7 @@ if __name__ == "__main__":
     elif args.task == 'launch-in':
         master, jobID = launchAndWait()
         print('\n\nspark master UI at: http://{}:8080\n'.format(master))
-        login(int(args.driverslots))
+        login(int(args.driverslots), args.hard_runtime)
 
     elif args.task == 'launch-notebook':
         driverhost = '-'
@@ -538,7 +535,7 @@ if __name__ == "__main__":
         os.environ['MASTER'] = "spark://{}:7077".format(master)
         address = setupnotebook()
         args.driveroutfile = '/dev/null'
-        driverjobID = submit(jobID, int(args.driverslots), "pyspark")
+        driverjobID = submit(jobID, int(args.driverslots), "pyspark", args.hard_runtime)
         time.sleep(10)
         driverhost = checkfordriver(driverjobID, jobID)
 #        while (driverhost == '-'):
