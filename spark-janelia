@@ -157,12 +157,12 @@ def startworker(sparktype, masterjobID, runtime):
     while masterURL is None:
         masterURL = getmasterbyjobID(masterjobID)
         if masterURL is None: 
-            waitformaster = input("No master with the job id {} running. Do you want to wait for it to start? (y/n) ".format(masterjobID))
-            if waitformaster == 'n':
-                print("Master may be orphaned. Please check your submitted jobs.")
-                sys.exit(0)
-            else:
-                time.sleep(60)
+            if not args.silentlaunch:
+                waitformaster = input("No master with the job id {} running. Do you want to wait for it to start? (y/n) ".format(masterjobID))
+                if waitformaster == 'n':
+                    print("Master may be orphaned. Please check your submitted jobs.")
+                    sys.exit(0)
+            time.sleep(60)
     options = ''
     if runtime is not None:
         options = "-W {}".format(runtime)
@@ -386,12 +386,16 @@ def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):
 
 def bkilljob(jobID):
     command = "bkill {}".format(jobID)
-    try:
-        bkillout = subprocess.check_output(command, universal_newlines=True, shell=True)
-        print(bkillout)
-    except:
-        print("Failed to kill job {}:".format(jobID))
-        traceback.print_exc()
+    num_tries = 3
+    for i in range(num_tries):
+        try:
+            bkillout = subprocess.check_output(command, universal_newlines=True, shell=True)
+            print(bkillout)
+            break
+        except:
+            print("Failed to kill job {}:".format(jobID))
+            traceback.print_exc()
+            time.sleep(5)
 
 def checkstop(inval, jobtype):
     if jobtype == "master":
@@ -475,6 +479,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_check", action="store_true")
     parser.add_argument("--unified", action="store_true")
     parser.add_argument("--driveronspark", action="store_true")
+    parser.add_argument("--silentlaunch", action="store_true")
     parser.add_argument("--minworkers", type=int, default=1, required=False)
                         
     args = parser.parse_args()
