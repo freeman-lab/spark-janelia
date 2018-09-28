@@ -54,8 +54,17 @@ def getmasterbyjobID(jobID):
         masters.append(listelement)
     for master in masters:
         if str(jobID) in master.split()[0]:
-            masterhost = master.split('*')[1]
+            masterhost = getmastername(master.split()[1])
+            print(masterhost)
     return masterhost
+
+def getmastername(master):
+    if '*' in master:
+        masterhost = master.split('*')[1]; 
+    else:
+        masterhost = master 
+    return master
+
 
 def getallmasters():
     masters = []
@@ -64,7 +73,8 @@ def getallmasters():
     bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
     for outline in bjobsout.splitlines():
         outline = outline.split()
-        masterdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2].split('*')[1]}
+        masterhost = getmastername(outline[2])
+        masterdict = {'jobid':outline[0], 'status':outline[1], 'host':masterhost}
         masters.append(masterdict)
     #get unified masters
     command = "bjobs -X -noheader -app sparkbatch -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
@@ -140,7 +150,7 @@ def startmaster(sparktype, runtime):
         options += ' -P {}'.format(args.lsf_project)
     try:
         #bsub requires argument for command, but the esub replaces it automatically
-        command = "bsub -a \"spark(master,{})\" {} commandstring".format(sparktype,options)
+        command = "bsub -a \"sparktest(master,{})\" {} commandstring".format(sparktype,options)
         print(command)
         rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
         masterjobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
@@ -169,7 +179,7 @@ def startworker(sparktype, masterjobID, runtime):
     if args.lsf_project is not None: 
         options += ' -P {}'.format(args.lsf_project)
     try: 
-        command = "bsub -a \"spark(worker,{})\" -J W{} {} commandstring".format(sparktype,masterjobID, options)
+        command = "bsub -a \"sparktest(worker,{})\" -J W{} {} commandstring".format(sparktype,masterjobID, options)
         print(command)
         rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
         workerjobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
@@ -181,12 +191,14 @@ def startworker(sparktype, masterjobID, runtime):
 def getenvironment():
     #Set MASTER
     if "MASTER" not in os.environ:
+        print("MASTER not found")
         masterlist = getallmasters()
         masterjobID = selectionlist(masterlist,'master')
         masterhost = getmasterbyjobID(masterjobID)
         os.environ["MASTER"] = str("spark://{}:7077".format(masterhost))
     else:
-        masterhost = os.getenv('MASTER').lstrip("spark://").replace(":7077","")
+        print("MASTER found {}".format(os.getenv('MASTER')))
+        masterhost = os.getenv('MASTER').replace("spark://","").replace(":7077","")
     #Set SPARK_HOME
     if "SPARK_HOME" not in os.environ:
         versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' -r -m {}".format(masterhost), universal_newlines=True, shell=True)
