@@ -17,19 +17,13 @@ except NameError:
     pass
 
 #########Variables to change for cluster environment
-default_node_slots = 16
+default_node_slots = 32
 default_options = "-q spark-drivers"
 alt_slots = 32
 alt_options = ""
 nonfull_options = "-R\"affinity[core(1)]\""
 queue = 'spark'
-#SPARKVERSIONS = {   
-#    'current': '/misc/local/spark-current/',
-#    'rc': '/misc/local/spark-rc/',
-#    'test': '/misc/local/spark-test',
-#    '2': '/misc/local/spark-2'
-#}                   
-defaultversion = 'current'
+defaultversion = 'bw'
 default_runlimit = '8:00'
 ####################################################
 
@@ -46,7 +40,7 @@ def getmasterbyjobID(jobID):
     bjobsout = subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
     masters = bjobsout.splitlines()
 
-    bjobsoutu = subprocess.check_output("bjobs -Xr -noheader -app sparkbatch -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
+    bjobsoutu = subprocess.check_output("bjobs -Xr -noheader -app sparkbatchtest -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
     for outline in bjobsoutu.splitlines():
         outlist = outline.split(' ')
         masteruhost = outlist[1].split(':')[0] 
@@ -121,7 +115,7 @@ def launchall(runtime):
     if args.lsf_project is not None: 
         options += ' -P {}'.format(args.lsf_project)
     #bsub requires argument for command, but the esub replaces it automatically
-    output = subprocess.check_output(["bsub -a \"sparkbatch({})\" -J sparkbatch {} commandstring".format(sparktype,options)], universal_newlines=True, shell=True)
+    output = subprocess.check_output(["bsub -a \"sparkbatchtest({})\" -J sparkbatch {} commandstring".format(sparktype,options)], universal_newlines=True, shell=True)
     print('Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots))
     jobID = output.split(" ")[1].lstrip("<").rstrip(">")
     return jobID
@@ -150,7 +144,7 @@ def startmaster(sparktype, runtime):
         options += ' -P {}'.format(args.lsf_project)
     try:
         #bsub requires argument for command, but the esub replaces it automatically
-        command = "bsub -a \"sparktest(master,{})\" {} commandstring".format(sparktype,options)
+        command = "bsub -a \"spark32(master,{})\" {} commandstring".format(sparktype,options)
         print(command)
         rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
         masterjobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
@@ -179,7 +173,7 @@ def startworker(sparktype, masterjobID, runtime):
     if args.lsf_project is not None: 
         options += ' -P {}'.format(args.lsf_project)
     try: 
-        command = "bsub -a \"sparktest(worker,{})\" -J W{} {} commandstring".format(sparktype,masterjobID, options)
+        command = "bsub -a \"spark32(worker,{})\" -J W{} {} commandstring".format(sparktype,masterjobID, options)
         print(command)
         rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
         workerjobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
