@@ -193,6 +193,9 @@ def getenvironment():
     else:
         print("MASTER found {}".format(os.getenv('MASTER')))
         masterhost = os.getenv('MASTER').replace("spark://","").replace(":7077","")
+        if '*' in masterhost: 
+            masterhost = masterhost.split('*')[1]
+            
     #Set SPARK_HOME
     if "SPARK_HOME" not in os.environ:
         versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' -r -m {}".format(masterhost), universal_newlines=True, shell=True)
@@ -527,7 +530,7 @@ if __name__ == "__main__":
         print('\n')     
         print(('%-20s%s\n%-20s%s' % ( 'job id:', jobID, 'spark master:', master ) ))
         print('\n')     
-        p = multiprocessing.Process(target=submitAndDestroy, args=(jobID, args.driverslots, sparksubargs))
+        p = multiprocessing.Process(target=submitAndDestroy, args=(jobID, args.driverslots, sparksubargs,args.hard_runtime))
         p.start()       
 
     elif args.task == 'launch-in':
