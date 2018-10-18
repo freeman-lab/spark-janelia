@@ -54,10 +54,11 @@ def getmasterbyjobID(jobID):
 
 def getmastername(master):
     if '*' in master:
+        print('master has a *')
         masterhost = master.split('*')[1]; 
     else:
         masterhost = master 
-    return master
+    return masterhost
 
 
 def getallmasters():
@@ -189,6 +190,8 @@ def getenvironment():
         masterlist = getallmasters()
         masterjobID = selectionlist(masterlist,'master')
         masterhost = getmasterbyjobID(masterjobID)
+        if '*' in masterhost: 
+            masterhost = masterhost.split('*')[1]
         os.environ["MASTER"] = str("spark://{}:7077".format(masterhost))
     else:
         print("MASTER found {}".format(os.getenv('MASTER')))
@@ -308,7 +311,7 @@ def launchAndWait():
             workerlist = getworkersbymasterID(jobID)
             rworkercount = len([worker for worker in  workerlist if worker['status'] == 'RUN'])
             #print rworkercount
-            if rworkercount > args.minworkers:
+            if rworkercount >= args.minworkers:
                 print('Sufficient workers')
                 enoughworkers = True
 
