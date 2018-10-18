@@ -40,7 +40,7 @@ def getmasterbyjobID(jobID):
     bjobsout = subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
     masters = bjobsout.splitlines()
 
-    bjobsoutu = subprocess.check_output("bjobs -Xr -noheader -app sparkbatchbw -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
+    bjobsoutu = subprocess.check_output("bjobs -Xr -noheader -app sparkbatch32 -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
     for outline in bjobsoutu.splitlines():
         outlist = outline.split(' ')
         masteruhost = outlist[1].split(':')[0] 
@@ -115,7 +115,7 @@ def launchall(runtime):
     if args.lsf_project is not None: 
         options += ' -P {}'.format(args.lsf_project)
     #bsub requires argument for command, but the esub replaces it automatically
-    output = subprocess.check_output(["bsub -a \"sparkbatchbw({})\" -J sparkbatch {} commandstring".format(sparktype,options)], universal_newlines=True, shell=True)
+    output = subprocess.check_output(["bsub -a \"sparkbatch32({})\" -J sparkbatch {} commandstring".format(sparktype,options)], universal_newlines=True, shell=True)
     print('Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots))
     jobID = output.split(" ")[1].lstrip("<").rstrip(">")
     return jobID
