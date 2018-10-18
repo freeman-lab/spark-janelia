@@ -22,7 +22,7 @@ default_options = "-q spark-drivers"
 alt_slots = 32
 alt_options = ""
 nonfull_options = "-R\"affinity[core(1)]\""
-queue = 'spark'
+queue = 'spark32'
 defaultversion = 'current'
 default_runlimit = '8:00'
 ####################################################
