@@ -72,7 +72,7 @@ def getallmasters():
         masterdict = {'jobid':outline[0], 'status':outline[1], 'host':masterhost}
         masters.append(masterdict)
     #get unified masters
-    command = "bjobs -X -noheader -app sparkbatch -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
+    command = "bjobs -X -noheader -app sparkbatch32 -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
     bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
     for outline in bjobsout.splitlines():
         outline = outline.split()
