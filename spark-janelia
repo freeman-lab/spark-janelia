@@ -310,7 +310,7 @@ def launchAndWait():
             time.sleep(10)
             workerlist = getworkersbymasterID(jobID)
             rworkercount = len([worker for worker in  workerlist if worker['status'] == 'RUN'])
-            #print rworkercount
+            print('There are {} workers running.').format(rworkercount)
             if rworkercount >= args.minworkers:
                 print('Sufficient workers')
                 enoughworkers = True
