@@ -300,14 +300,14 @@ def launchAndWait():
         master = getmasterbyjobID(jobID)
         if master is not None:
             break
-        time.sleep(10) # wait 10 seconds to avoid spamming the cluster
+        time.sleep(60) # wait 60 seconds to avoid spamming the cluster
         sys.stdout.write('.')
         sys.stdout.flush()
     os.environ["MASTER"] = "spark://{}:7077".format(master)
     if args.unified == False:
         enoughworkers = False
         while enoughworkers == False:
-            time.sleep(10)
+            time.sleep(60)
             workerlist = getworkersbymasterID(jobID)
             rworkercount = len([worker for worker in  workerlist if worker['status'] == 'RUN'])
             if rworkercount is None: 
