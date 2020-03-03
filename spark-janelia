@@ -1,265 +1,601 @@
-#!/misc/local/python-2.7.11/bin/python2.7
+#!/usr/bin/env python
 
 import os
 import glob
 import sys
 import argparse
 import subprocess
-import xml.etree.ElementTree as ET
 import time
 import multiprocessing
+import traceback
+from distutils import spawn
+
+####for python2/3 compatibility
+try:
+    input = raw_input
+except NameError:
+    pass
+
+#########Variables to change for cluster environment
+default_node_slots = 32
+default_options = "-q spark-drivers"
+alt_slots = 32
+alt_options = ""
+nonfull_options = "-R\"affinity[core(1)]\""
+queue = 'spark32'
+defaultversion = 'current'
+default_runlimit = '8:00'
+####################################################
+
+def getavailableversions():
+    SPARKVERSIONS = {}
+    verslocation = subprocess.check_output('find /misc/local -maxdepth 1 -name "spark-*" -not -name spark-versions 2> /dev/null', universal_newlines=True, shell=True).split()
+    for location in verslocation:
+       verskey = location.split('-')[1]
+       SPARKVERSIONS[verskey] = location
+    return SPARKVERSIONS
+
+def getmasterbyjobID(jobID):
+    masterhost = None
+    bjobsout = subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
+    masters = bjobsout.splitlines()
+
+    bjobsoutu = subprocess.check_output("bjobs -Xr -noheader -app sparkbatch32 -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
+    for outline in bjobsoutu.splitlines():
+        outlist = outline.split(' ')
+        masteruhost = outlist[1].split(':')[0] 
+        listelement = "{} {}".format(outlist[0], masteruhost)
+        masters.append(listelement)
+    for master in masters:
+        if str(jobID) in master.split()[0]:
+            masterhost = getmastername(master.split()[1])
+            print(masterhost)
+    return masterhost
+
+def getmastername(master):
+    if '*' in master:
+        print('master has a *')
+        masterhost = master.split('*')[1]; 
+    else:
+        masterhost = master 
+    return masterhost
 
 
-def findMasterByJobId(jobId):
-    status = subprocess.check_output(['qstat', '-xml'])
-    master = ''
-    qtree = ET.fromstring(status)[0]
-    rjobs = qtree.findall(".//job_list[@state='running']")
-    for job in rjobs:
-        if not isSparkJob( job ):
-            continue
-        currMaster = job.find('queue_name').text.split('@')[1]
-        currJobId  = job.find('JB_job_number').text
-        if jobId == '' or currJobId == jobId:
-            master = currMaster
-            break
-    return master
+def getallmasters():
+    masters = []
+    #get normal masters
+    command = "bjobs -X -noheader -J master -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
+    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
+    for outline in bjobsout.splitlines():
+        outline = outline.split()
+        masterhost = getmastername(outline[2])
+        masterdict = {'jobid':outline[0], 'status':outline[1], 'host':masterhost}
+        masters.append(masterdict)
+    #get unified masters
+    command = "bjobs -X -noheader -app sparkbatch32 -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
+    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
+    for outline in bjobsout.splitlines():
+        outline = outline.split()
+        masterhost = outline[2].split(':')[0]
+        masterdict = {'jobid':outline[0], 'status':outline[1], 'host':masterhost.split('*')[1]}
+        masters.append(masterdict)
+    return masters
 
+def getworkersbymasterID(masterID):
+    workers = []
+    command = "bjobs -X -noheader -J W{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
+    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
+    for outline in bjobsout.splitlines():
+        outline = outline.split()
+        workerdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2][3:]}
+        workers.append(workerdict)
+    return workers
 
-def isSparkJob(job):
-    return job.find('jclass_name').text == jobname + '.default'
+def getdriversbymasterID(masterID):
+    drivers = []
+    command = "bjobs -X -noheader -J D{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
+    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
+    for outline in bjobsout.splitlines():
+        outline = outline.split()
+        try:
+            driverhost = outline[2].split('*')[1]
+        except:
+            driverhost = None
+        driverdict = {'jobid':outline[0], 'status':outline[1], 'host':driverhost}
+        drivers.append(driverdict)
+    return drivers
 
+def launchall(runtime):
+    sparktype = args.version
+    slots = default_node_slots + args.nnodes*default_node_slots
+    if runtime is None:
+        options = "-n {}".format(slots)
+    else:
+        options = "-n {} -W {}".format(slots,runtime)
 
-def launch(sleepTime='86400'):
+    if args.lsf_project is not None: 
+        options += ' -P {}'.format(args.lsf_project)
+    #bsub requires argument for command, but the esub replaces it automatically
+    output = subprocess.check_output(["bsub -q spark32 -a \"sparkbatch32({})\" -J sparkbatch {} commandstring".format(sparktype,options)], universal_newlines=True, shell=True)
+    print('Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots))
+    jobID = output.split(" ")[1].lstrip("<").rstrip(">")
+    return jobID
+
+def launch(runtime):
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
         os.mkdir(os.path.expanduser('~/sparklogs'))
-
-    startupCommand = '/misc/local/spark-versions/bin/' + launchscript
-    output = subprocess.check_output(['qsub', '-jc', jobname, '-pe', jobname, str(args.nnodes), '-o', os.path.expanduser('~/sparklogs/'), startupCommand])
-    print('\n')
-    print('Spark job submitted with ' + str(args.nnodes) + ' nodes')
-    print('\n')
-    jobId = output.split(' ')[2]
-    return jobId
-
-def login():
-    status = subprocess.check_output(["qstat", "-xml"])
-    qtree = ET.fromstring(status)[0]
-    jtree = ET.fromstring(status)[1]
-    jobs = qtree.findall('job_list')
-    if len(jobs) == 0:
-        print('\n')
-        print >> sys.stderr, "No running jobs found, keep waiting for jobs to launch"
-        print('\n')
-    else:
-        address = None
-        for job in jobs:
-            procname = job.find('JB_name').text
-            jclass = job.find('jclass_name').text
-            state = job.find('state').text
-            jobid = int(job.find('JB_job_number').text)
-            if jclass and (jclass[:5] == 'spark') and (state == 'r'):
-                if args.jobid:
-                    if jobid == args.jobid:
-                        address = job.find('queue_name').text.split('@')[1]
-                else:
-                    address = job.find('queue_name').text.split('@')[1]
-        if address:
-            filename = os.path.expanduser('~/spark-master')
-            if os.path.exists(filename):
-                os.remove(filename)
-            os.system("echo 'spark://'" + address + ":7077 >> " + os.path.expanduser("~") + "/spark-master")
-            subprocess.call(['qlogin', '-pe', 'batch', '16', '-l', 'interactive=true'])
-        else:
-            print('\n')
-            print >> sys.stderr, "No Spark job found, check status with qstat, or try a different jobid?"
-            print('\n')
-
-
-def destroy(jobId ):
-    status = subprocess.check_output(["qstat", "-xml"])
-    qtree = ET.fromstring(status)[0]
-    jtree = ET.fromstring(status)[1]
-    jobs = qtree.findall('job_list')
-    if len(jobs) == 0:
-        print('\n')
-        print >> sys.stderr, "No running jobs found"
-        print('\n')
-    else:
-        deleted = 0
-        for job in jobs:
-            procname = job.find('JB_name').text
-            jclass = job.find('jclass_name').text
-            state = job.find('state').text
-            jobid = job.find('JB_job_number').text
-            if (jclass[:5] == 'spark') and (state == 'r'):
-                if jobId and jobid == jobId:
-                    output = subprocess.check_output(['qdel', jobid])
-                    deleted += 1
-                else:
-                    output = subprocess.check_output(['qdel', jobid])
-                    deleted += 1
-        if deleted == 0:
-            print('\n')
-            print >> sys.stderr, "No Spark jobs deleted, try a different jobid?"
-            print('\n')
-        else:
-            print('\n')
-            print('Spark jobs successfully deleted')
-            print('\n')
-
-
-def start():
-    f = open(os.path.expanduser("~") + '/spark-master', 'r')
-    master = f.readline().replace('\n','')
-
-    if args.notebook is True or args.ipython is True:
-       os.environ['PYSPARK_DRIVER_PYTHON'] = 'ipython'
     
+    sparktype = args.version
+    masterjobID = startmaster(sparktype, runtime)
+    time.sleep(5)
+    try:
+        for i in range(args.nnodes):
+            startworker(sparktype, masterjobID, runtime)
+    except:
+        print("Worker launch failed")
+        traceback.print_exc()
+        sys.exit(1)
+    return masterjobID
+
+def startmaster(sparktype, runtime):
+    options = ''
+    if runtime is not None:
+        options = "-W {}".format(runtime)
+    if args.lsf_project is not None: 
+        options += ' -P {}'.format(args.lsf_project)
+    try:
+        #bsub requires argument for command, but the esub replaces it automatically
+        command = "bsub -q spark32 -a \"spark32(master,{})\" {} commandstring".format(sparktype,options)
+        print(command)
+        rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
+        masterjobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
+    except:
+        print("Master launch failed.")
+        traceback.print_exc()
+        sys.exit(1)
+    print("Master submitted. Job ID is {}".format(masterjobID))
+    return masterjobID
+
+def startworker(sparktype, masterjobID, runtime):
+    masterURL = None
+    masterURL = getmasterbyjobID(masterjobID)
+    while masterURL is None:
+        masterURL = getmasterbyjobID(masterjobID)
+        if masterURL is None: 
+            if not args.silentlaunch:
+                waitformaster = input("No master with the job id {} running. Do you want to wait for it to start? (y/n) ".format(masterjobID))
+                if waitformaster == 'n':
+                    print("Master may be orphaned. Please check your submitted jobs.")
+                    sys.exit(0)
+            time.sleep(60)
+    options = ''
+    if runtime is not None:
+        options = "-W {}".format(runtime)
+    if args.lsf_project is not None: 
+        options += ' -P {}'.format(args.lsf_project)
+    try: 
+        command = "bsub -q spark32 -a \"spark32(worker,{})\" -J W{} {} commandstring".format(sparktype,masterjobID, options)
+        print(command)
+        rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
+        workerjobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
+        print(("Worker submitted. Job ID is {}".format(workerjobID)))
+    except:
+        print("Worker launch failed.")
+        traceback.print_exc()
+        
+def getenvironment():
+    #Set MASTER
+    if "MASTER" not in os.environ:
+        print("MASTER not found")
+        masterlist = getallmasters()
+        masterjobID = selectionlist(masterlist,'master')
+        masterhost = getmasterbyjobID(masterjobID)
+        if '*' in masterhost: 
+            masterhost = masterhost.split('*')[1]
+        os.environ["MASTER"] = str("spark://{}:7077".format(masterhost))
+    else:
+        print("MASTER found {}".format(os.getenv('MASTER')))
+        masterhost = os.getenv('MASTER').replace("spark://","").replace(":7077","")
+        if '*' in masterhost: 
+            masterhost = masterhost.split('*')[1]
+            
+    #Set SPARK_HOME
+    if "SPARK_HOME" not in os.environ:
+        versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' -r -m {}".format(masterhost), universal_newlines=True, shell=True)
+        verspath = SPARKVERSIONS[versout.split()[1]]
+        os.environ["SPARK_HOME"] = str(verspath) 
+
+    #Set PATH
+    sparkpath = "{}/bin:{}/sbin".format(os.getenv('SPARK_HOME'), os.getenv('SPARK_HOME')) 
+    if sparkpath not in os.environ['PATH']:
+        os.environ["PATH"] = str("{}/bin:{}".format(sparkpath, os.environ['PATH']))
+
+def checkslots(nodeslots=default_node_slots):
+    if nodeslots == default_node_slots:
+        options = "{} {}".format(default_node_slots, default_options)
+    elif nodeslots == alt_slots:
+        options = "{} {}".format(alt_slots, alt_options)
+    else: 
+        options = "{} {}".format(nodeslots, nonfull_options)
+    return options
+
+def login(nodeslots, runtime):
+    getenvironment()
+    options = checkslots(nodeslots)
+    if args.driveronspark:
+        options += ' -q spark-drivers'
+    if args.lsf_project is not None: 
+        options += ' -P {}'.format(args.lsf_project)
+    command = "bsub -Is -n {} -W {} /bin/bash".format(options, runtime)
+    os.system(command)
+    
+def submit(jobID, nodeslots, sparkcommand, runtime):
+    getenvironment()
+    options = "-n {} -W {}".format(checkslots(nodeslots), runtime)
+    if args.driveroutfile is not '':
+        options += ' -o {}'.format(args.driveroutfile)
+    if args.lsf_project is not None:
+        options += ' -P {}'.format(args.lsf_project)
+    if args.driveronspark:
+        options += ' -q spark-drivers'
+    try:
+        command = "bsub {} -J D{} \"{}\"".format(options, jobID, sparkcommand) 
+        print(command)
+        rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
+        driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
+        print('Driver submitted. Job ID is {}'.format(driverJobID))
+    except:
+        print("Driver failed to launch. Cluster is still running.")
+        traceback.print_exc()
+        sys.exit(1)
+    return driverJobID
+
+def destroy(jobID):
+    if jobID is '':
+        print("Please specify a job ID for a master or cluster to tear it down.")
+        sys.exit()
+    else:
+        bkilljob(jobID)
+        workers = []
+        workers = getworkersbymasterID(jobID)
+        if workers:
+            for worker in workers:
+                bkilljob(worker['jobid'])
+        drivers = []
+        drivers = getdriversbymasterID(jobID)
+        if drivers:
+            for driver in drivers:
+                bkilljob(driver['jobid'])
+
+def start(command = 'pyspark'):
+    if args.ipython is True:
+        os.environ['PYSPARK_DRIVER_PYTHON'] = 'ipython'
     if args.notebook is True:
-       os.environ['PYSPARK_DRIVER_PYTHON'] = 'jupyter'
-       os.environ['PYSPARK_DRIVER_PYTHON_OPTS'] = 'notebook --ip "*" --port 9999 --no-browser'
-       address = master[8:][:-5]
-       print('\n')
-       print('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999')
-       print('View the status of your cluster at http://' + address + ':8080')
-       print('\n')
-
-
-    if os.getenv('PATH') is None:
-        os.environ['PATH'] = ""
-
-    os.system(version + '/bin/pyspark --master='+master)
-
-
-def startScala():
-    os.environ['SPARK_HOME'] = version
-
-    if os.getenv('PATH') is None:
-        os.environ['PATH'] = ""
-
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/misc/local/python-2.7.11/bin"
-    f = open(os.path.expanduser("~") + '/spark-master', 'r')
-    os.environ['MASTER'] = f.readline().replace('\n','')
-    os.system(version + '/bin/spark-shell')
-
-
-def submit(master = ''):
-    os.environ['SPARK_HOME'] = version
-
-    if os.getenv('PATH') is None:
-        os.environ['PATH'] = ""
-
-    os.environ['PATH'] = os.environ['PATH'] + ":" + "/misc/local/python-2.7.11/bin"
-    if master == '':
-        with open(os.path.expanduser("~") + '/spark-master', 'r') as f:
-            master = f.readline().replace('\n','')
-    os.environ['MASTER'] = master
-
-    # ssh into master and then run spark-submit
-    currentPath = os.getcwd();
-    command = 'ssh ' + master[8:14] +  ' "cd ' + currentPath + '; ' + version + '/bin/spark-submit --master ' + master + ' ' + args.submitargs + '"'
+        address = setupnotebook()
+        os.environ['JUPYTER_RUNTIME_DIR'] = '/scratch/{}'.format(os.getenv('USER'))
+        print('\n')
+        print(('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999'))
+        print(('View the status of your cluster at http://' + address + ':8080'))
+        print('\n')
     os.system(command)
 
-
+def setupnotebook():
+    getenvironment()
+    if spawn.find_executable('jupyter') is None:
+        print("Jupyter not found. Wrong python in $PATH?")
+        sys.exit(1)
+    os.environ['PYSPARK_DRIVER_PYTHON'] = 'jupyter'
+    os.environ['PYSPARK_DRIVER_PYTHON_OPTS'] = "notebook --ip 0.0.0.0 --port 9999 --no-browser --NotebookApp.token=''"
+    os.environ['JUPYTER_RUNTIME_DIR'] = '/scratch/{}'.format(os.getenv('USER'))
+    address = os.getenv('MASTER')[8:][:-5]
+    return address 
+    
 def launchAndWait():
-        jobId  = launch(str(args.sleep_time))
-        master = ''     
-        while( master == '' ):
-            master = findMasterByJobId(jobId)
-            time.sleep(1) # wait 1 second to avoid spamming the cluster
-            sys.stdout.write('.')
-            sys.stdout.flush()
-        return master, jobId
+    if args.unified == True: 
+        jobID = launchall(args.hard_runtime)
+    else:
+        jobID  = launch(args.hard_runtime)
+    master = None     
+    while master is None:
+        master = getmasterbyjobID(jobID)
+        if master is not None:
+            break
+        time.sleep(60) # wait 60 seconds to avoid spamming the cluster
+        sys.stdout.write('.')
+        sys.stdout.flush()
+    os.environ["MASTER"] = "spark://{}:7077".format(master)
+    if args.unified == False:
+        enoughworkers = False
+        while enoughworkers == False:
+            time.sleep(60)
+            workerlist = getworkersbymasterID(jobID)
+            rworkercount = len([worker for worker in  workerlist if worker['status'] == 'RUN'])
+            if rworkercount is None: 
+                rworkercount = 0
+            print('There are {} workers running.'.format(rworkercount))
+            if rworkercount >= args.minworkers:
+                print('Sufficient workers')
+                enoughworkers = True
+
+       # runningworkers = False
+       # while runningworkers == False:
+       #     workerlist = getworkersbymasterID(jobID)
+       #     for worker in workerlist:
+       #         if worker['status'] == 'RUN':
+       #             print "worker running"
+       #             runningworkers = True
+       #             break
+    return master, jobID
+
+def submitAndDestroy(jobID, driverslots, sparksubargs, runtime):
+    master=getmasterbyjobID(jobID)
+    os.environ["MASTER"] = "spark://{}:7077".format(master)
+    driverjobID = submit(jobID, driverslots, sparksubargs, runtime)
+    drivercomplete = False
+    while not drivercomplete:
+        driverstat = subprocess.check_output("bjobs -noheader -o 'STAT' {}".format(driverjobID), universal_newlines=True, shell=True)
+        if str(driverstat).rstrip() in ("EXIT", "DONE"):
+            drivercomplete = True
+        time.sleep(30)
+    destroy(jobID)
+
+def checkforupdate():
+    currentdir = os.getcwd()
+    scriptdir = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(scriptdir)
+    output = subprocess.check_output('git fetch --dry-run 2>&1', universal_newlines=True, shell=True) 
+    os.chdir(currentdir)
+    if "origin" in output: 
+         print("This script is not up to date. To update the script, run spark-janelia update.")
+#        reply = input("This script is not up to date. Would you like to update now? (y/n) ")
+#        if reply == 'y':
+#            update()
+#            sys.exit()
+#        else: 
+#            return
 
 def update():
     currentdir = os.getcwd()
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(scriptdir)
-    os.system('git pull origin master')
+    try:
+        os.system('git pull origin py-universal')
+        os.system('git pull')
+        print("Update successful.")
+    except:
+        print("Update failed.")
     os.chdir(currentdir)
 
-def submitAndDestroy( master, jobId ):
-    submit(master)
-    destroy(jobId)
+def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):
+    workername = "W{}".format(masterjobID)
+    jobtokill = ""
+    statuses = {}
+    for worker in workerlist:
+        statuses[worker['jobid']] = worker['status']
+    if "PEND" in list(statuses.values()) and not skipcheckstop:
+        terminatew = input("Terminate waiting job(s) first? (y/n) ")
+    for wjobID in list(statuses.keys()):
+        if statuses[wjobID] == 'PEND' and terminatew == 'y':
+            jobtokill = wjobID
+            break
+        elif statuses[wjobID] == 'RUN' and not skipcheckstop:
+            jobtokill = selectionlist(workerlist, 'worker')
+            break
+        else:
+            jobtokill = wjobID
+            break
+    try:
+        if jobtokill != "":
+            bkilljob(jobtokill)
+            time.sleep(3)
+    except:
+        print("No running or waiting workers found corresponding to Master job {}".format(masterjobID))
+        traceback.print_exc()
+        sys.exit()
+    return terminatew
+
+
+def bkilljob(jobID):
+    command = "bkill {}".format(jobID)
+    num_tries = 3
+    for i in range(num_tries):
+        try:
+            bkillout = subprocess.check_output(command, universal_newlines=True, shell=True)
+            print(bkillout)
+            break
+        except:
+            print("Failed to kill job {}:".format(jobID))
+            traceback.print_exc()
+            time.sleep(5)
+
+def checkstop(inval, jobtype):
+    if jobtype == "master":
+        check = input("Stop master with job id {} (y/n):".format(inval))
+    else:
+        check = input("Remove {} workers? (y/n):".format(inval))
+    if check != "y":
+        print("Operation cancelled.")
+        sys.exit()
+    else:
+        return True
+
+def selectionlist(joblist, jobtype):
+    i = 0 
+    selectlist = {}
+    if len(joblist) == 1: 
+        jobID = joblist[0]['jobid']
+        return jobID
+    else:
+        print("Select {} from list below:".format(jobtype))
+        for job in joblist:
+            i = i + 1 
+            selectlist[i] = job['jobid']
+            print("{}) Host: {} jobID: {} Status: {}".format(i, job['host'], job['jobid'], job['status']))
+        while True:
+            selection = int(input("Selection? "))
+            if selection <= i:
+                jobID = selectlist[selection]
+                skipcheckstop = True
+                break
+            else:
+                print("Invalid selection.")
+        return jobID
+
+def checkfordriver(driverjobID, masterjobID):
+    driverhost = '-'
+    while '-' in driverhost:
+        driverhost = str(subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), universal_newlines=True, shell=True)).rstrip()
+        if '-' not in driverhost:
+            return driverhost
+        else:
+            print('Driver not started yet. Please select action: ')
+            print('1) Wait 60 seconds and check again.')
+            print('2) Exit to command line. The cluster will continue running and the driver will remain in the queue.')
+            print('3) Terminate cluster')
+            while True:
+                selection = int(input("Selection? "))
+                if selection == 1:
+                    time.sleep(60)
+                    break
+                elif selection == 2:
+                    sys.exit()
+                elif selection == 3:
+                    destroy(masterjobID)
+                    sys.exit()
+                else:
+                    print("Invalid selection.")
 
 if __name__ == "__main__":
 
+    SPARKVERSIONS = getavailableversions()
+    versiontypes = list(SPARKVERSIONS.keys())
+
+    skipcheckstop = False
     parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
                         
-    choices = ('launch', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'update')
+    choices = ('launch', 'launchall', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'launch-notebook', 'update', 'add-workers', 'remove-workers', 'stopcluster')
                         
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
     parser.add_argument("-i", "--ipython", action="store_true")
     parser.add_argument("-b", "--notebook", action="store_true")
-    parser.add_argument("-v", "--version", choices=("stable", "rc", "test", "2"), default="stable", required=False)
-    parser.add_argument("-j", "--jobid", type=int, default=None, required=False)
-    parser.add_argument("-t", "--sleep_time", type=int, default=86400, required=False)
+    parser.add_argument("-v", "--version", choices=versiontypes, default=defaultversion, required=False)
+    parser.add_argument("-j", "--jobID", type=int, default=None, required=False)
+    parser.add_argument("-t", "--hard_runtime", type=str, default=default_runlimit, required=False)
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
+    parser.add_argument("-f", "--force", action="store_true")
+    parser.add_argument("-o", "--driveroutfile", type=str, default='', required=False)
+    parser.add_argument("-d", "--driverslots", type=int, default=default_node_slots, required=False)
+    parser.add_argument("-P", "--lsf_project", type=str, default=None, required=False)
+    parser.add_argument("--no_check", action="store_true")
+    parser.add_argument("--unified", action="store_true")
+    parser.add_argument("--driveronspark", action="store_true")
+    parser.add_argument("--silentlaunch", action="store_true")
+    parser.add_argument("--minworkers", type=int, default=1, required=False)
                         
     args = parser.parse_args()
                         
-    SPARKVERSIONS = {   
-        'stable': '/misc/local/spark-current/',
-        'rc': '/misc/local/spark-rc/',
-        'test': '/misc/local/spark-test',
-        '2': '/misc/local/spark-2'
-    }                   
-                        
-    SPARKJOBS = {
-        'stable': 'spark',   
-        'rc': 'spark-rc',  
-        'test': 'spark-test',   
-        '2': 'spark-2'
-    }    
+    if args.task == 'update':
+        update()
 
-    SPARKLAUNCHSCRIPTS = {
-        'stable': 'start-cluster.sh',
-        'rc': 'start-rc-cluster.sh',
-        '2': 'start-2-cluster.sh'
-    }
+    if args.no_check == False:
+        checkforupdate()
 
-    version = SPARKVERSIONS[args.version]
-    jobname = SPARKJOBS[args.version]
-    launchscript = SPARKLAUNCHSCRIPTS[args.version]
-                        
-    if args.nnodes == 1:
-        raise Exception('Cannot start a Spark cluster with only 1 node, please request 2 or more.')
-                        
+    if args.force == True:
+        skipcheckstop = True
+
     if args.task == 'launch':
-        launch(str(args.sleep_time))
+        masterjobID = launch(args.hard_runtime)
+        masterurl = "spark://{}:7077".format(getmasterbyjobID(masterjobID))
+        print("To set $MASTER environment variable, enter export MASTER={} at the command line.".format(masterurl))
                         
+    if args.task == 'launchall':
+        masterjobID = launchall(args.hard_runtime)
+
     elif args.task == 'login':
-        login()         
+        login(int(args.driverslots), args.hard_runtime)         
                         
     elif args.task == 'destroy':
-        destroy(args.jobid or '')
+        destroy(args.jobID or '')
                         
     elif args.task == 'start':
         start()         
                         
     elif args.task == 'start-scala':
-        startScala()   
+        start('spark-shell') 
                         
     elif args.task == 'submit':
-        submit()        
+        sparksubargs = 'spark-submit {}'.format(args.submitargs)
+        submit(args.jobID, int(args.driverslots), sparksubargs, args.hard_runtime)
                         
     elif args.task == 'lsd':
-        master, jobId = launchAndWait()
+        master, jobID = launchAndWait()
         master = 'spark://%s:7077' % master
+        sparksubargs = 'spark-submit {}'.format(args.submitargs)
         print('\n')     
-        print('%-20s%s\n%-20s%s' % ( 'job id:', jobId, 'spark master:', master ) )
+        print(('%-20s%s\n%-20s%s' % ( 'job id:', jobID, 'spark master:', master ) ))
         print('\n')     
-        p = multiprocessing.Process(target=submitAndDestroy, args=(master, jobId))
+        p = multiprocessing.Process(target=submitAndDestroy, args=(jobID, args.driverslots, sparksubargs,args.hard_runtime))
         p.start()       
 
     elif args.task == 'launch-in':
-        master, jobId = launchAndWait()
-        print '\n\nspark master: {}\n'.format(master)
-        login()
+        master, jobID = launchAndWait()
+        print('\n\nspark master UI at: http://{}:8080\n'.format(master))
+        login(int(args.driverslots), args.hard_runtime)
 
-    elif args.task == 'update':
-        update()
+    elif args.task == 'launch-notebook':
+        driverhost = '-'
+        master, jobID = launchAndWait()
+        os.environ['MASTER'] = "spark://{}:7077".format(master)
+        if args.driveroutfile is '':
+            args.driveroutfile = '/dev/null'
+        address = setupnotebook()
+        driverjobID = submit(jobID, int(args.driverslots), "pyspark", args.hard_runtime)
+        time.sleep(10)
+        driverhost = checkfordriver(driverjobID, jobID)
+#        while (driverhost == '-'):
+#            driverhost = str(subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), universal_newlines=True, shell=True)).rstrip()
+#            if '-' not in driverhost:
+#                break
+#            else:
+#                print('Driver not started yet. Please select action: ')
+#            time.sleep(10) # wait 10 seconds to avoid spamming the cluster
+#            sys.stdout.write('.')
+#            sys.stdout.flush() 
+        print("Jupyter notebook at http://{}:9999".format(driverhost[3:].replace('\n','')))
+        print("Don't forget to run stopcluster when you exit your notebook. The spark cluster will not exit automatically.")
 
 
+    elif args.task == 'add-workers':
+        if args.jobID is None:
+            masterlist = getallmasters()
+            masterjobID = selectionlist(masterlist,'master')
+        else:
+            masterjobID = args.jobID
+        for node in range(args.nnodes):
+            startworker(args.version, masterjobID, args.hard_runtime)
+
+    elif args.task == 'remove-workers':
+        if args.jobID is None:
+            masterlist = getallmasters()
+            masterjobID = selectionlist(masterlist,'master')
+        else:
+            masterjobID = args.jobID
+        terminatew = ""
+        jobtype = "worker"
+        for node in range(args.nnodes):
+            workerlist = getworkersbymasterID(str(masterjobID))
+            terminatew = stopworker(str(masterjobID), terminatew, workerlist, skipcheckstop)
+   
+    elif args.task == 'stopcluster':
+        if args.jobID is not None:
+            masterjobID = args.jobID
+        else: 
+            masterlist = getallmasters()
+            if len(masterlist) == 0 : 
+                print("No masters found.")
+                sys.exit(0)
+            masterjobID = selectionlist(masterlist,'master')
+        if not skipcheckstop:
+            checkstop(masterjobID, 'master')
+        destroy(masterjobID)
