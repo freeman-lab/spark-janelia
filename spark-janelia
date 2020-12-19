@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import glob
 import sys
 import argparse
 import subprocess
@@ -9,12 +8,6 @@ import time
 import multiprocessing
 import traceback
 from distutils import spawn
-
-####for python2/3 compatibility
-try:
-    input = raw_input
-except NameError:
-    pass
 
 #########Variables to change for cluster environment
 default_node_slots = 32
@@ -26,14 +19,6 @@ queue = 'spark32'
 defaultversion = 'current'
 default_runlimit = '8:00'
 ####################################################
-
-def getavailableversions():
-    SPARKVERSIONS = {}
-    verslocation = subprocess.check_output('find /misc/local -maxdepth 1 -name "spark-*" -not -name spark-versions 2> /dev/null', universal_newlines=True, shell=True).split()
-    for location in verslocation:
-       verskey = location.split('-')[1]
-       SPARKVERSIONS[verskey] = location
-    return SPARKVERSIONS
 
 def getmasterbyjobID(jobID):
     masterhost = None
@@ -104,22 +89,6 @@ def getdriversbymasterID(masterID):
         driverdict = {'jobid':outline[0], 'status':outline[1], 'host':driverhost}
         drivers.append(driverdict)
     return drivers
-
-def launchall(runtime):
-    sparktype = args.version
-    slots = default_node_slots + args.nnodes*default_node_slots
-    if runtime is None:
-        options = "-n {}".format(slots)
-    else:
-        options = "-n {} -W {}".format(slots,runtime)
-
-    if args.lsf_project is not None: 
-        options += ' -P {}'.format(args.lsf_project)
-    #bsub requires argument for command, but the esub replaces it automatically
-    output = subprocess.check_output(["bsub -q spark32 -a \"sparkbatch32({})\" -J sparkbatch {} commandstring".format(sparktype,options)], universal_newlines=True, shell=True)
-    print('Spark job submitted with {} workers ({} slots)'.format(args.nnodes, slots))
-    jobID = output.split(" ")[1].lstrip("<").rstrip(">")
-    return jobID
 
 def launch(runtime):
     if not os.path.exists(os.path.expanduser('~/sparklogs')):
@@ -219,16 +188,6 @@ def checkslots(nodeslots=default_node_slots):
         options = "{} {}".format(nodeslots, nonfull_options)
     return options
 
-def login(nodeslots, runtime):
-    getenvironment()
-    options = checkslots(nodeslots)
-    if args.driveronspark:
-        options += ' -q spark-drivers'
-    if args.lsf_project is not None: 
-        options += ' -P {}'.format(args.lsf_project)
-    command = "bsub -Is -n {} -W {} /bin/bash".format(options, runtime)
-    os.system(command)
-    
 def submit(jobID, nodeslots, sparkcommand, runtime):
     getenvironment()
     options = "-n {} -W {}".format(checkslots(nodeslots), runtime)
@@ -267,34 +226,8 @@ def destroy(jobID):
             for driver in drivers:
                 bkilljob(driver['jobid'])
 
-def start(command = 'pyspark'):
-    if args.ipython is True:
-        os.environ['PYSPARK_DRIVER_PYTHON'] = 'ipython'
-    if args.notebook is True:
-        address = setupnotebook()
-        os.environ['JUPYTER_RUNTIME_DIR'] = '/scratch/{}'.format(os.getenv('USER'))
-        print('\n')
-        print(('View your notebooks at http://' + os.environ['HOSTNAME'] + ':9999'))
-        print(('View the status of your cluster at http://' + address + ':8080'))
-        print('\n')
-    os.system(command)
-
-def setupnotebook():
-    getenvironment()
-    if spawn.find_executable('jupyter') is None:
-        print("Jupyter not found. Wrong python in $PATH?")
-        sys.exit(1)
-    os.environ['PYSPARK_DRIVER_PYTHON'] = 'jupyter'
-    os.environ['PYSPARK_DRIVER_PYTHON_OPTS'] = "notebook --ip 0.0.0.0 --port 9999 --no-browser --NotebookApp.token=''"
-    os.environ['JUPYTER_RUNTIME_DIR'] = '/scratch/{}'.format(os.getenv('USER'))
-    address = os.getenv('MASTER')[8:][:-5]
-    return address 
-    
 def launchAndWait():
-    if args.unified == True: 
-        jobID = launchall(args.hard_runtime)
-    else:
-        jobID  = launch(args.hard_runtime)
+    jobID  = launch(args.hard_runtime)
     master = None     
     while master is None:
         master = getmasterbyjobID(jobID)
@@ -304,27 +237,18 @@ def launchAndWait():
         sys.stdout.write('.')
         sys.stdout.flush()
     os.environ["MASTER"] = "spark://{}:7077".format(master)
-    if args.unified == False:
-        enoughworkers = False
-        while enoughworkers == False:
-            time.sleep(60)
-            workerlist = getworkersbymasterID(jobID)
-            rworkercount = len([worker for worker in  workerlist if worker['status'] == 'RUN'])
-            if rworkercount is None: 
-                rworkercount = 0
-            print('There are {} workers running.'.format(rworkercount))
-            if rworkercount >= args.minworkers:
-                print('Sufficient workers')
-                enoughworkers = True
+    enoughworkers = False
+    while enoughworkers == False:
+        time.sleep(60)
+        workerlist = getworkersbymasterID(jobID)
+        rworkercount = len([worker for worker in  workerlist if worker['status'] == 'RUN'])
+        if rworkercount is None:
+            rworkercount = 0
+        print('There are {} workers running.'.format(rworkercount))
+        if rworkercount >= args.minworkers:
+            print('Sufficient workers')
+            enoughworkers = True
 
-       # runningworkers = False
-       # while runningworkers == False:
-       #     workerlist = getworkersbymasterID(jobID)
-       #     for worker in workerlist:
-       #         if worker['status'] == 'RUN':
-       #             print "worker running"
-       #             runningworkers = True
-       #             break
     return master, jobID
 
 def submitAndDestroy(jobID, driverslots, sparksubargs, runtime):
@@ -339,62 +263,6 @@ def submitAndDestroy(jobID, driverslots, sparksubargs, runtime):
         time.sleep(30)
     destroy(jobID)
 
-def checkforupdate():
-    currentdir = os.getcwd()
-    scriptdir = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(scriptdir)
-    output = subprocess.check_output('git fetch --dry-run 2>&1', universal_newlines=True, shell=True) 
-    os.chdir(currentdir)
-    if "origin" in output: 
-         print("This script is not up to date. To update the script, run spark-janelia update.")
-#        reply = input("This script is not up to date. Would you like to update now? (y/n) ")
-#        if reply == 'y':
-#            update()
-#            sys.exit()
-#        else: 
-#            return
-
-def update():
-    currentdir = os.getcwd()
-    scriptdir = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(scriptdir)
-    try:
-        os.system('git pull origin py-universal')
-        os.system('git pull')
-        print("Update successful.")
-    except:
-        print("Update failed.")
-    os.chdir(currentdir)
-
-def stopworker(masterjobID, terminatew, workerlist, skipcheckstop):
-    workername = "W{}".format(masterjobID)
-    jobtokill = ""
-    statuses = {}
-    for worker in workerlist:
-        statuses[worker['jobid']] = worker['status']
-    if "PEND" in list(statuses.values()) and not skipcheckstop:
-        terminatew = input("Terminate waiting job(s) first? (y/n) ")
-    for wjobID in list(statuses.keys()):
-        if statuses[wjobID] == 'PEND' and terminatew == 'y':
-            jobtokill = wjobID
-            break
-        elif statuses[wjobID] == 'RUN' and not skipcheckstop:
-            jobtokill = selectionlist(workerlist, 'worker')
-            break
-        else:
-            jobtokill = wjobID
-            break
-    try:
-        if jobtokill != "":
-            bkilljob(jobtokill)
-            time.sleep(3)
-    except:
-        print("No running or waiting workers found corresponding to Master job {}".format(masterjobID))
-        traceback.print_exc()
-        sys.exit()
-    return terminatew
-
-
 def bkilljob(jobID):
     command = "bkill {}".format(jobID)
     num_tries = 3
@@ -408,27 +276,16 @@ def bkilljob(jobID):
             traceback.print_exc()
             time.sleep(5)
 
-def checkstop(inval, jobtype):
-    if jobtype == "master":
-        check = input("Stop master with job id {} (y/n):".format(inval))
-    else:
-        check = input("Remove {} workers? (y/n):".format(inval))
-    if check != "y":
-        print("Operation cancelled.")
-        sys.exit()
-    else:
-        return True
-
 def selectionlist(joblist, jobtype):
-    i = 0 
+    i = 0
     selectlist = {}
-    if len(joblist) == 1: 
+    if len(joblist) == 1:
         jobID = joblist[0]['jobid']
         return jobID
     else:
         print("Select {} from list below:".format(jobtype))
         for job in joblist:
-            i = i + 1 
+            i = i + 1
             selectlist[i] = job['jobid']
             print("{}) Host: {} jobID: {} Status: {}".format(i, job['host'], job['jobid'], job['status']))
         while True:
@@ -441,94 +298,30 @@ def selectionlist(joblist, jobtype):
                 print("Invalid selection.")
         return jobID
 
-def checkfordriver(driverjobID, masterjobID):
-    driverhost = '-'
-    while '-' in driverhost:
-        driverhost = str(subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), universal_newlines=True, shell=True)).rstrip()
-        if '-' not in driverhost:
-            return driverhost
-        else:
-            print('Driver not started yet. Please select action: ')
-            print('1) Wait 60 seconds and check again.')
-            print('2) Exit to command line. The cluster will continue running and the driver will remain in the queue.')
-            print('3) Terminate cluster')
-            while True:
-                selection = int(input("Selection? "))
-                if selection == 1:
-                    time.sleep(60)
-                    break
-                elif selection == 2:
-                    sys.exit()
-                elif selection == 3:
-                    destroy(masterjobID)
-                    sys.exit()
-                else:
-                    print("Invalid selection.")
-
 if __name__ == "__main__":
 
-    SPARKVERSIONS = getavailableversions()
-    versiontypes = list(SPARKVERSIONS.keys())
+    SPARKVERSIONS = {'2.3.1': '/misc/local/spark-2.3.1'}
 
     skipcheckstop = False
-    parser = argparse.ArgumentParser(description="launch and manage spark cluster jobs")
+    parser = argparse.ArgumentParser(description="launch spark cluster job")
                         
-    choices = ('launch', 'launchall', 'login', 'destroy', 'start', 'start-scala', 'submit', 'lsd', 'launch-in', 'launch-notebook', 'update', 'add-workers', 'remove-workers', 'stopcluster')
+    choices = ('lsd')
                         
     parser.add_argument("task", choices=choices)
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
-    parser.add_argument("-i", "--ipython", action="store_true")
-    parser.add_argument("-b", "--notebook", action="store_true")
-    parser.add_argument("-v", "--version", choices=versiontypes, default=defaultversion, required=False)
-    parser.add_argument("-j", "--jobID", type=int, default=None, required=False)
+    parser.add_argument("-v", "--version", type=str, default=defaultversion, required=False)
     parser.add_argument("-t", "--hard_runtime", type=str, default=default_runlimit, required=False)
     parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
-    parser.add_argument("-f", "--force", action="store_true")
     parser.add_argument("-o", "--driveroutfile", type=str, default='', required=False)
     parser.add_argument("-d", "--driverslots", type=int, default=default_node_slots, required=False)
     parser.add_argument("-P", "--lsf_project", type=str, default=None, required=False)
-    parser.add_argument("--no_check", action="store_true")
-    parser.add_argument("--unified", action="store_true")
     parser.add_argument("--driveronspark", action="store_true")
     parser.add_argument("--silentlaunch", action="store_true")
     parser.add_argument("--minworkers", type=int, default=1, required=False)
                         
     args = parser.parse_args()
                         
-    if args.task == 'update':
-        update()
-
-    if args.no_check == False:
-        checkforupdate()
-
-    if args.force == True:
-        skipcheckstop = True
-
-    if args.task == 'launch':
-        masterjobID = launch(args.hard_runtime)
-        masterurl = "spark://{}:7077".format(getmasterbyjobID(masterjobID))
-        print("To set $MASTER environment variable, enter export MASTER={} at the command line.".format(masterurl))
-                        
-    if args.task == 'launchall':
-        masterjobID = launchall(args.hard_runtime)
-
-    elif args.task == 'login':
-        login(int(args.driverslots), args.hard_runtime)         
-                        
-    elif args.task == 'destroy':
-        destroy(args.jobID or '')
-                        
-    elif args.task == 'start':
-        start()         
-                        
-    elif args.task == 'start-scala':
-        start('spark-shell') 
-                        
-    elif args.task == 'submit':
-        sparksubargs = 'spark-submit {}'.format(args.submitargs)
-        submit(args.jobID, int(args.driverslots), sparksubargs, args.hard_runtime)
-                        
-    elif args.task == 'lsd':
+    if args.task == 'lsd':
         master, jobID = launchAndWait()
         master = 'spark://%s:7077' % master
         sparksubargs = 'spark-submit {}'.format(args.submitargs)
@@ -537,65 +330,3 @@ if __name__ == "__main__":
         print('\n')     
         p = multiprocessing.Process(target=submitAndDestroy, args=(jobID, args.driverslots, sparksubargs,args.hard_runtime))
         p.start()       
-
-    elif args.task == 'launch-in':
-        master, jobID = launchAndWait()
-        print('\n\nspark master UI at: http://{}:8080\n'.format(master))
-        login(int(args.driverslots), args.hard_runtime)
-
-    elif args.task == 'launch-notebook':
-        driverhost = '-'
-        master, jobID = launchAndWait()
-        os.environ['MASTER'] = "spark://{}:7077".format(master)
-        if args.driveroutfile is '':
-            args.driveroutfile = '/dev/null'
-        address = setupnotebook()
-        driverjobID = submit(jobID, int(args.driverslots), "pyspark", args.hard_runtime)
-        time.sleep(10)
-        driverhost = checkfordriver(driverjobID, jobID)
-#        while (driverhost == '-'):
-#            driverhost = str(subprocess.check_output("bjobs -X -noheader -o \"EXEC_HOST\" {}".format(driverjobID), universal_newlines=True, shell=True)).rstrip()
-#            if '-' not in driverhost:
-#                break
-#            else:
-#                print('Driver not started yet. Please select action: ')
-#            time.sleep(10) # wait 10 seconds to avoid spamming the cluster
-#            sys.stdout.write('.')
-#            sys.stdout.flush() 
-        print("Jupyter notebook at http://{}:9999".format(driverhost[3:].replace('\n','')))
-        print("Don't forget to run stopcluster when you exit your notebook. The spark cluster will not exit automatically.")
-
-
-    elif args.task == 'add-workers':
-        if args.jobID is None:
-            masterlist = getallmasters()
-            masterjobID = selectionlist(masterlist,'master')
-        else:
-            masterjobID = args.jobID
-        for node in range(args.nnodes):
-            startworker(args.version, masterjobID, args.hard_runtime)
-
-    elif args.task == 'remove-workers':
-        if args.jobID is None:
-            masterlist = getallmasters()
-            masterjobID = selectionlist(masterlist,'master')
-        else:
-            masterjobID = args.jobID
-        terminatew = ""
-        jobtype = "worker"
-        for node in range(args.nnodes):
-            workerlist = getworkersbymasterID(str(masterjobID))
-            terminatew = stopworker(str(masterjobID), terminatew, workerlist, skipcheckstop)
-   
-    elif args.task == 'stopcluster':
-        if args.jobID is not None:
-            masterjobID = args.jobID
-        else: 
-            masterlist = getallmasters()
-            if len(masterlist) == 0 : 
-                print("No masters found.")
-                sys.exit(0)
-            masterjobID = selectionlist(masterlist,'master')
-        if not skipcheckstop:
-            checkstop(masterjobID, 'master')
-        destroy(masterjobID)
