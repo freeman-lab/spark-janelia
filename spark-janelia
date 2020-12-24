@@ -211,8 +211,11 @@ def write_lsf_scripts(args, run_info):
 
 def write_sge_scripts(args, run_info):
 
-    t = datetime.datetime.strptime(args.hard_runtime, "%H:%M")
-    job_max_run_seconds = int(datetime.timedelta(hours=t.hour, minutes=t.minute).total_seconds())
+    if ':' in args.hard_runtime:
+        t = datetime.datetime.strptime(args.hard_runtime, "%H:%M")
+        job_max_run_seconds = int(datetime.timedelta(hours=t.hour, minutes=t.minute).total_seconds())
+    else:
+        job_max_run_seconds = 60 * int(args.hard_runtime)
 
     script_path = render_template('scripts/10-queue-sge-jobs.sh',
                                   f'{run_info.launch_script}',
