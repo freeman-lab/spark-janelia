@@ -16,16 +16,23 @@ def parse_args():
     # legacy args used by https://github.com/saalfeldlab/flintstone/blob/master/flintstone-lsd.sh ...
 
     parser.add_argument("task", choices=['generate-run', 'generate-and-launch-run', 'lsd'],
-                        help='lsd (legacy option) is the same as generate_and_launch_run')
-    parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
-    parser.add_argument("-v", "--version", type=str, default='3.0.1', required=False)
-    parser.add_argument("-t", "--hard_runtime", type=str, default='8:00', required=False)
+                        help='note: lsd is the same as generate_and_launch_run')
+    parser.add_argument("-n", "--nnodes", type=int, default=2, required=False,
+                        help='maximum number of worker nodes to schedule')
+    parser.add_argument("-v", "--version", type=str, default='3.0.1', required=False,
+                        help='shortcut for specifying SPARK_HOMEs in /misc/local/spark-*')
+    parser.add_argument("-t", "--hard_runtime", type=str, default='8:00', required=False,
+                        help='maximum number of minutes to allow jobs to run, '
+                             'define as minutes or as hours:minutes')
     parser.add_argument("-s", "--submitargs", type=str, required=True,
-                        help='arguments to pass to spark-submit when launching driver')
-    parser.add_argument("-d", "--driverslots", type=int, default=32, required=False)
+                        help='arguments to pass to spark-submit when launching driver, '
+                             'e.g. --class ${DRIVER_CLASS} ${DRIVER_JAR} ${DRIVER_ARGS}')
+    parser.add_argument("-d", "--driverslots", type=int, default=32, required=False,
+                        help='number of CPU slots to allocate for the driver')
     parser.add_argument("-P", "--lsf_project", type=str, default=None, required=False,
                         help='LSF project (or sge account) for cluster job billing')
-    parser.add_argument("--minworkers", type=int, default=1, required=False)
+    parser.add_argument("--minworkers", type=int, default=1, required=False,
+                        help='minimum number of workers required to be running before starting driver')
 
     # -----------------------------------------------------------------
     # new args ...
@@ -40,8 +47,10 @@ def parse_args():
     parser.add_argument("--gb_per_slot", type=int, default=15, required=False,
                         help='Janelia cluster resource info listed here: '
                              'http://wiki.int.janelia.org/wiki/display/ScientificComputing/Janelia+Compute+Cluster')
-    parser.add_argument("--hpc_type", choices=['lsf', 'sge'], default='lsf', required=False)
-    parser.add_argument("--java_home", type=str, default=os.getenv('JAVA_HOME'), required=False)
+    parser.add_argument("--hpc_type", choices=['lsf', 'sge'], default='lsf', required=False,
+                        help='high performance cluster type')
+    parser.add_argument("--java_home", type=str, default=os.getenv('JAVA_HOME'), required=False,
+                        help='explicit JAVA_HOME directory')
     parser.add_argument("--run_local_dirs", type=str, default=None, required=False,
                         help='override default storage directories used on worker nodes for shuffle and RDD data')
     parser.add_argument("--run_parent_dir", type=str, default=f'{home_dir}/.spark', required=False,
@@ -53,7 +62,8 @@ def parse_args():
     parser.add_argument("--worker_opts", type=str, default='', required=False,
                         help='additional arguments to pass to spark-class when launching workers '
                              'e.g. -Dspark.worker.cleanup.enabled=true (to remove SPARK_WORKER_DIR on exit)')
-    parser.add_argument("--worker_slots", type=int, default=32, required=False)
+    parser.add_argument("--worker_slots", type=int, default=32, required=False,
+                        help='slots per worker node')
 
     # legacy spark-janelia supported other irrelevant-to-flintstone args, ignore those unknown args here
     args, unknown = parser.parse_known_args()
@@ -293,6 +303,9 @@ def main():
         subprocess.run(run_info.launch_script, capture_output=True)
     else:
         print(f'To launch jobs, run:\n  {run_info.launch_script}\n')
+
+    print('To get web user interface URL after driver has started, run:')
+    print(f'  grep "Bound MasterWebUI to" {run_info.logs_dir}/01-master.log\n')
 
 
 if __name__ == "__main__":
