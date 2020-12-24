@@ -18,7 +18,7 @@ export SPARK_CONF_DIR="@{run_config_dir}"
 SPARK_HOME="@{spark_home}"
 MASTER_URL=$(cat "@{master_url_path}")
 
-CMD="${SPARK_HOME}/bin/spark-submit --deploy-mode client @{submit_args}"
+CMD="${SPARK_HOME}/bin/spark-submit --deploy-mode client --master ${MASTER_URL} @{submit_args}"
 
 echo "$(date) [${HOSTNAME}] running ${CMD}"
 ${CMD}
