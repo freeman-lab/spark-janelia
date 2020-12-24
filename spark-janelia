@@ -1,332 +1,299 @@
 #!/usr/bin/env python
 
-import os
-import sys
 import argparse
+import collections
+import datetime
+import os
+import string
 import subprocess
 import time
-import multiprocessing
-import traceback
-from distutils import spawn
-
-#########Variables to change for cluster environment
-default_node_slots = 32
-default_options = "-q spark-drivers"
-alt_slots = 32
-alt_options = ""
-nonfull_options = "-R\"affinity[core(1)]\""
-queue = 'spark32'
-defaultversion = 'current'
-default_runlimit = '8:00'
-####################################################
-
-def getmasterbyjobID(jobID):
-    masterhost = None
-    bjobsout = subprocess.check_output("bjobs -Xr -noheader -J master -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
-    masters = bjobsout.splitlines()
-
-    bjobsoutu = subprocess.check_output("bjobs -Xr -noheader -app sparkbatch32 -o \"JOBID EXEC_HOST\" 2> /dev/null", universal_newlines=True, shell=True)
-    for outline in bjobsoutu.splitlines():
-        outlist = outline.split(' ')
-        masteruhost = outlist[1].split(':')[0] 
-        listelement = "{} {}".format(outlist[0], masteruhost)
-        masters.append(listelement)
-    for master in masters:
-        if str(jobID) in master.split()[0]:
-            masterhost = getmastername(master.split()[1])
-            print(masterhost)
-    return masterhost
-
-def getmastername(master):
-    if '*' in master:
-        print('master has a *')
-        masterhost = master.split('*')[1]; 
-    else:
-        masterhost = master 
-    return masterhost
 
 
-def getallmasters():
-    masters = []
-    #get normal masters
-    command = "bjobs -X -noheader -J master -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
-    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
-    for outline in bjobsout.splitlines():
-        outline = outline.split()
-        masterhost = getmastername(outline[2])
-        masterdict = {'jobid':outline[0], 'status':outline[1], 'host':masterhost}
-        masters.append(masterdict)
-    #get unified masters
-    command = "bjobs -X -noheader -app sparkbatch32 -o \"JOBID STAT EXEC_HOST\" 2> /dev/null"
-    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
-    for outline in bjobsout.splitlines():
-        outline = outline.split()
-        masterhost = outline[2].split(':')[0]
-        masterdict = {'jobid':outline[0], 'status':outline[1], 'host':masterhost.split('*')[1]}
-        masters.append(masterdict)
-    return masters
+def parse_args():
+    parser = argparse.ArgumentParser(description="launch batch spark cluster job")
 
-def getworkersbymasterID(masterID):
-    workers = []
-    command = "bjobs -X -noheader -J W{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
-    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
-    for outline in bjobsout.splitlines():
-        outline = outline.split()
-        workerdict = {'jobid':outline[0], 'status':outline[1], 'host':outline[2][3:]}
-        workers.append(workerdict)
-    return workers
+    # -----------------------------------------------------------------
+    # legacy args used by https://github.com/saalfeldlab/flintstone/blob/master/flintstone-lsd.sh ...
 
-def getdriversbymasterID(masterID):
-    drivers = []
-    command = "bjobs -X -noheader -J D{} -o \"JOBID STAT EXEC_HOST\" 2> /dev/null".format(masterID)
-    bjobsout = subprocess.check_output(command, universal_newlines=True, shell=True)
-    for outline in bjobsout.splitlines():
-        outline = outline.split()
-        try:
-            driverhost = outline[2].split('*')[1]
-        except:
-            driverhost = None
-        driverdict = {'jobid':outline[0], 'status':outline[1], 'host':driverhost}
-        drivers.append(driverdict)
-    return drivers
+    parser.add_argument("task", choices=['generate-run', 'generate-and-launch-run', 'lsd'],
+                        help='lsd (legacy option) is the same as generate_and_launch_run')
+    parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
+    parser.add_argument("-v", "--version", type=str, default='3.0.1', required=False)
+    parser.add_argument("-t", "--hard_runtime", type=str, default='8:00', required=False)
+    parser.add_argument("-s", "--submitargs", type=str, required=True,
+                        help='arguments to pass to spark-submit when launching driver')
+    parser.add_argument("-d", "--driverslots", type=int, default=32, required=False)
+    parser.add_argument("-P", "--lsf_project", type=str, default=None, required=False,
+                        help='LSF project (or sge account) for cluster job billing')
+    parser.add_argument("--minworkers", type=int, default=1, required=False)
 
-def launch(runtime):
-    if not os.path.exists(os.path.expanduser('~/sparklogs')):
-        os.mkdir(os.path.expanduser('~/sparklogs'))
-    
-    sparktype = args.version
-    masterjobID = startmaster(sparktype, runtime)
-    time.sleep(5)
+    # -----------------------------------------------------------------
+    # new args ...
+
+    home_dir = os.getenv('HOME')
+    user_name = os.getenv('USER')
+
+    parser.add_argument("--common_job_args", type=str, default='', required=False,
+                        help='arguments passed to all job submissions (e.g. -q test)')
+    parser.add_argument("--consolidate_logs", action="store_true",
+                        help='if specified, overrides --run_worker_dir and writes worker logs to run directory')
+    parser.add_argument("--gb_per_slot", type=int, default=15, required=False,
+                        help='Janelia cluster resource info listed here: '
+                             'http://wiki.int.janelia.org/wiki/display/ScientificComputing/Janelia+Compute+Cluster')
+    parser.add_argument("--hpc_type", choices=['lsf', 'sge'], default='lsf', required=False)
+    parser.add_argument("--java_home", type=str, default=os.getenv('JAVA_HOME'), required=False)
+    parser.add_argument("--run_local_dirs", type=str, default=None, required=False,
+                        help='override default storage directories used on worker nodes for shuffle and RDD data')
+    parser.add_argument("--run_parent_dir", type=str, default=f'{home_dir}/.spark', required=False,
+                        help='override default parent directory for run scripts and logs')
+    parser.add_argument("--run_worker_dir", type=str, default=None, required=False,
+                        help='override default directory on worker nodes containing worker jar and log files')
+    parser.add_argument("--spark_home", type=str, default=os.getenv('SPARK_HOME'), required=False,
+                        help='explicit SPARK_HOME directory, overrides --version')
+    parser.add_argument("--worker_opts", type=str, default='', required=False,
+                        help='additional arguments to pass to spark-class when launching workers '
+                             'e.g. -Dspark.worker.cleanup.enabled=true (to remove SPARK_WORKER_DIR on exit)')
+    parser.add_argument("--worker_slots", type=int, default=32, required=False)
+
+    # legacy spark-janelia supported other irrelevant-to-flintstone args, ignore those unknown args here
+    args, unknown = parser.parse_known_args()
+
+    # -----------------------------------------------------------------
+    # setup args with more complex validation or derived defaults
+
+    if args.task == 'lsd':
+        args.task = 'generate-and-launch-run'
+
+    java_home = args.java_home if args.java_home else '/misc/local/jdk1.8.0_102'
+    if not os.path.isfile(f'{java_home}/bin/java'):
+        raise ValueError(f'invalid java home: {java_home}')
+    args.java_home = java_home
+
+    spark_home = args.spark_home if args.spark_home else f'/misc/local/spark-{args.version}'
+    if not os.path.isfile(f'{spark_home}/bin/spark-submit'):
+        raise ValueError(f'invalid spark home: {spark_home}')
+    args.spark_home = spark_home
+
+    worker_scratch_dir = f'/scratch/{user_name}/spark'
+    if args.hpc_type == 'lsf':
+        lsf_job_id_vars = '${LSB_JOBID}-${LSB_JOBINDEX}'
+        worker_scratch_dir = f'/scratch/{user_name}/spark-{lsf_job_id_vars}'
+
+        if args.lsf_project:
+            args.common_job_args = f'-P {args.lsf_project} {args.common_job_args}'.strip()
+
+    elif args.hpc_type == 'sge':
+        sge_job_id_vars = '${JOB_ID}-${SGE_TASK_ID}'
+        worker_scratch_dir = f'/scratch/{user_name}/spark-{sge_job_id_vars}'
+
+        if args.lsf_project:
+            args.common_job_args = f'-A {args.lsf_project} {args.common_job_args}'.strip()
+
+    if not args.run_local_dirs:
+        # NOTE: when Spark jobs were confined to a full node, Janelia used to define local dirs as:
+        # /data1/sparklocaldir,/data2/sparklocaldir,...,/data6/sparklocaldir
+        args.run_local_dirs = worker_scratch_dir
+
+    if not args.run_worker_dir:
+        args.run_worker_dir = worker_scratch_dir
+
+    return args
+
+
+class SparkTemplate(string.Template):
+    delimiter = '@'
+    idpattern = r'[a-z][_a-z0-9]*'
+
+
+def render_template(relative_template_path,
+                    to_path,
+                    **kwargs):
+
+    spark_janelia_path = os.path.realpath(__file__)
+    spark_janelia_dir = os.path.dirname(spark_janelia_path)
+    template_path = f'{spark_janelia_dir}/templates/{relative_template_path}'
+
+    with open(template_path, 'r') as template_file:
+        template_contents = template_file.read()
+
+    template = SparkTemplate(template_contents)
+    populated_template = template.substitute(kwargs)
+
+    with open(to_path, "w") as file:
+        print(populated_template, file=file)
+
+    return to_path
+
+
+def write_common_config_files(args, run_info):
+
+    driver_memory = (args.driverslots * args.gb_per_slot) - 1  # leave 1GB for Spark infrastructure on driver
+    worker_memory = args.worker_slots * args.gb_per_slot
+
+    render_template('conf/log4j.properties',
+                    f'{run_info.config_dir}/log4j.properties')
+
+    render_template('conf/spark-defaults.conf',
+                    f'{run_info.config_dir}/spark-defaults.conf',
+                    driver_memory=driver_memory)
+
+    render_template('conf/spark-env.sh',
+                    f'{run_info.config_dir}/spark-env.sh',
+                    java_home=args.java_home,
+                    run_local_dirs=run_info.local_dirs,
+                    run_logs_dir=run_info.logs_dir,
+                    run_worker_dir=run_info.worker_dir,
+                    spark_home=args.spark_home,
+                    worker_memory=worker_memory,
+                    worker_opts=args.worker_opts)
+
+
+def write_common_scripts(args, run_info):
+
+    script_path = render_template('scripts/01-launch-master.sh',
+                                  f'{run_info.scripts_dir}/01-launch-master.sh',
+                                  run_config_dir=run_info.config_dir,
+                                  spark_home=args.spark_home)
+    os.chmod(script_path, 0o755)
+
+    script_path = render_template('scripts/02-save-master-url.sh',
+                                  f'{run_info.scripts_dir}/02-save-master-url.sh',
+                                  master_url_path=run_info.master_url_path)
+    os.chmod(script_path, 0o755)
+
+    script_path = render_template('scripts/03-launch-worker.sh',
+                                  f'{run_info.scripts_dir}/03-launch-worker.sh',
+                                  master_url_path=run_info.master_url_path,
+                                  run_config_dir=run_info.config_dir,
+                                  spark_home=args.spark_home)
+    os.chmod(script_path, 0o755)
+
+    script_path = render_template('scripts/04-launch-driver.sh',
+                                  f'{run_info.scripts_dir}/04-launch-driver.sh',
+                                  master_url_path=run_info.master_url_path,
+                                  run_config_dir=run_info.config_dir,
+                                  spark_home=args.spark_home,
+                                  submit_args=args.submitargs)
+    os.chmod(script_path, 0o755)
+
+
+def write_lsf_scripts(args, run_info):
+
+    script_path = render_template('scripts/00-queue-lsf-jobs.sh',
+                                  f'{run_info.launch_script}',
+                                  common_job_args=args.common_job_args,
+                                  driver_slots=args.driverslots,
+                                  job_name_prefix=run_info.job_name_prefix,
+                                  job_runtime_limit=args.hard_runtime,
+                                  max_worker_nodes=args.nnodes,
+                                  min_worker_nodes=args.minworkers,
+                                  run_logs_dir=run_info.logs_dir,
+                                  run_scripts_dir=run_info.scripts_dir,
+                                  worker_slots=args.worker_slots)
+    os.chmod(script_path, 0o755)
+
+    script_path = render_template('scripts/05-shutdown-lsf-jobs.sh',
+                                  f'{run_info.scripts_dir}/05-shutdown-lsf-jobs.sh',
+                                  job_name_prefix=run_info.job_name_prefix,
+                                  run_logs_dir=run_info.logs_dir)
+    os.chmod(script_path, 0o755)
+
+
+def write_sge_scripts(args, run_info):
+
+    t = datetime.datetime.strptime(args.hard_runtime, "%H:%M")
+    job_max_run_seconds = int(datetime.timedelta(hours=t.hour, minutes=t.minute).total_seconds())
+
+    script_path = render_template('scripts/10-queue-sge-jobs.sh',
+                                  f'{run_info.launch_script}',
+                                  common_job_args=args.common_job_args,
+                                  driver_slots=args.driverslots,
+                                  job_max_run_seconds=job_max_run_seconds,
+                                  job_name_prefix=run_info.job_name_prefix,
+                                  max_worker_nodes=args.nnodes,
+                                  min_worker_nodes=args.minworkers,
+                                  run_logs_dir=run_info.logs_dir,
+                                  run_scripts_dir=run_info.scripts_dir,
+                                  worker_slots=args.worker_slots)
+    os.chmod(script_path, 0o755)
+
+    script_path = render_template('scripts/11-verify-sge-workers-ready.sh',
+                                  f'{run_info.scripts_dir}/11-verify-sge-workers-ready.sh')
+    os.chmod(script_path, 0o755)
+
+    script_path = render_template('scripts/12-shutdown-sge-jobs.sh',
+                                  f'{run_info.scripts_dir}/12-shutdown-sge-jobs.sh',
+                                  job_name_prefix=run_info.job_name_prefix,
+                                  run_logs_dir=run_info.logs_dir)
+    os.chmod(script_path, 0o755)
+
+
+RunInfo = collections.namedtuple(
+    'RunInfo',
+    'dir, config_dir, logs_dir, scripts_dir, launch_script, worker_dir, master_url_path, local_dirs, job_name_prefix')
+
+
+def create_run(args):
+
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    run_dir = f'{args.run_parent_dir}/{timestamp}'
+
     try:
-        for i in range(args.nnodes):
-            startworker(sparktype, masterjobID, runtime)
-    except:
-        print("Worker launch failed")
-        traceback.print_exc()
-        sys.exit(1)
-    return masterjobID
+        os.makedirs(run_dir)
+    except FileExistsError:
+        # retry once to work around rare case of concurrent run by same user
+        time.sleep(1)
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        run_dir = f'{args.run_parent_dir}/{timestamp}'
 
-def startmaster(sparktype, runtime):
-    options = ''
-    if runtime is not None:
-        options = "-W {}".format(runtime)
-    if args.lsf_project is not None: 
-        options += ' -P {}'.format(args.lsf_project)
-    try:
-        #bsub requires argument for command, but the esub replaces it automatically
-        command = "bsub -q spark32 -a \"spark32(master,{})\" {} commandstring".format(sparktype,options)
-        print(command)
-        rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
-        masterjobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
-    except:
-        print("Master launch failed.")
-        traceback.print_exc()
-        sys.exit(1)
-    print("Master submitted. Job ID is {}".format(masterjobID))
-    return masterjobID
+    run_config_dir = f'{run_dir}/conf'
+    run_logs_dir = f'{run_dir}/logs'
+    run_scripts_dir = f'{run_dir}/scripts'
+    launch_script = f'{run_scripts_dir}/00-queue-{args.hpc_type}-jobs.sh'
+    master_url_path = f'{run_dir}/master-url.txt'
 
-def startworker(sparktype, masterjobID, runtime):
-    masterURL = None
-    masterURL = getmasterbyjobID(masterjobID)
-    while masterURL is None:
-        masterURL = getmasterbyjobID(masterjobID)
-        if masterURL is None: 
-            if not args.silentlaunch:
-                waitformaster = input("No master with the job id {} running. Do you want to wait for it to start? (y/n) ".format(masterjobID))
-                if waitformaster == 'n':
-                    print("Master may be orphaned. Please check your submitted jobs.")
-                    sys.exit(0)
-            time.sleep(60)
-    options = ''
-    if runtime is not None:
-        options = "-W {}".format(runtime)
-    if args.lsf_project is not None: 
-        options += ' -P {}'.format(args.lsf_project)
-    try: 
-        command = "bsub -q spark32 -a \"spark32(worker,{})\" -J W{} {} commandstring".format(sparktype,masterjobID, options)
-        print(command)
-        rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
-        workerjobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
-        print(("Worker submitted. Job ID is {}".format(workerjobID)))
-    except:
-        print("Worker launch failed.")
-        traceback.print_exc()
-        
-def getenvironment():
-    #Set MASTER
-    if "MASTER" not in os.environ:
-        print("MASTER not found")
-        masterlist = getallmasters()
-        masterjobID = selectionlist(masterlist,'master')
-        masterhost = getmasterbyjobID(masterjobID)
-        if '*' in masterhost: 
-            masterhost = masterhost.split('*')[1]
-        os.environ["MASTER"] = str("spark://{}:7077".format(masterhost))
+    run_worker_dir = args.run_worker_dir
+    if args.consolidate_logs:
+        if args.hpc_type == 'lsf':
+            job_index = '${LSB_JOBINDEX}'
+            run_worker_dir = f'{run_dir}/logs/worker-{job_index}-dir'
+
+        elif args.hpc_type == 'sge':
+            task_id = '${SGE_TASK_ID}'
+            run_worker_dir = f'{run_dir}/logs/worker-{task_id}-dir'
+
+    user_name = os.getenv('USER')
+    job_name_prefix = f'spark_{user_name}_{timestamp}'
+
+    os.makedirs(run_config_dir)
+    os.makedirs(run_logs_dir)
+    os.makedirs(run_scripts_dir)
+
+    print(f'\nCreated:\n  {run_config_dir}\n  {run_logs_dir}\n  {run_scripts_dir}\n')
+
+    return RunInfo(run_dir, run_config_dir, run_logs_dir, run_scripts_dir, launch_script,
+                   run_worker_dir, master_url_path, args.run_local_dirs, job_name_prefix)
+
+
+def main():
+
+    args = parse_args()
+    run_info = create_run(args)
+
+    if args.hpc_type == 'lsf':
+        write_lsf_scripts(args, run_info)
+    elif args.hpc_type == 'sge':
+        write_sge_scripts(args, run_info)
+
+    write_common_config_files(args, run_info)
+    write_common_scripts(args, run_info)
+
+    if args.task == 'generate-and-launch-run':
+        print(f'Running:\n  {run_info.launch_script}\n')
+        subprocess.run(run_info.launch_script, capture_output=True)
     else:
-        print("MASTER found {}".format(os.getenv('MASTER')))
-        masterhost = os.getenv('MASTER').replace("spark://","").replace(":7077","")
-        if '*' in masterhost: 
-            masterhost = masterhost.split('*')[1]
-            
-    #Set SPARK_HOME
-    if "SPARK_HOME" not in os.environ:
-        versout = subprocess.check_output("bjobs -noheader -o 'COMMAND' -r -m {}".format(masterhost), universal_newlines=True, shell=True)
-        verspath = SPARKVERSIONS[versout.split()[1]]
-        os.environ["SPARK_HOME"] = str(verspath) 
+        print(f'To launch jobs, run:\n  {run_info.launch_script}\n')
 
-    #Set PATH
-    sparkpath = "{}/bin:{}/sbin".format(os.getenv('SPARK_HOME'), os.getenv('SPARK_HOME')) 
-    if sparkpath not in os.environ['PATH']:
-        os.environ["PATH"] = str("{}/bin:{}".format(sparkpath, os.environ['PATH']))
-
-def checkslots(nodeslots=default_node_slots):
-    if nodeslots == default_node_slots:
-        options = "{} {}".format(default_node_slots, default_options)
-    elif nodeslots == alt_slots:
-        options = "{} {}".format(alt_slots, alt_options)
-    else: 
-        options = "{} {}".format(nodeslots, nonfull_options)
-    return options
-
-def submit(jobID, nodeslots, sparkcommand, runtime):
-    getenvironment()
-    options = "-n {} -W {}".format(checkslots(nodeslots), runtime)
-    if args.driveroutfile is not '':
-        options += ' -o {}'.format(args.driveroutfile)
-    if args.lsf_project is not None:
-        options += ' -P {}'.format(args.lsf_project)
-    if args.driveronspark:
-        options += ' -q spark-drivers'
-    try:
-        command = "bsub {} -J D{} \"{}\"".format(options, jobID, sparkcommand) 
-        print(command)
-        rawout = subprocess.check_output(command, universal_newlines=True, shell=True)
-        driverJobID = rawout.split(" ")[1].lstrip("<").rstrip(">")
-        print('Driver submitted. Job ID is {}'.format(driverJobID))
-    except:
-        print("Driver failed to launch. Cluster is still running.")
-        traceback.print_exc()
-        sys.exit(1)
-    return driverJobID
-
-def destroy(jobID):
-    if jobID is '':
-        print("Please specify a job ID for a master or cluster to tear it down.")
-        sys.exit()
-    else:
-        bkilljob(jobID)
-        workers = []
-        workers = getworkersbymasterID(jobID)
-        if workers:
-            for worker in workers:
-                bkilljob(worker['jobid'])
-        drivers = []
-        drivers = getdriversbymasterID(jobID)
-        if drivers:
-            for driver in drivers:
-                bkilljob(driver['jobid'])
-
-def launchAndWait():
-    jobID  = launch(args.hard_runtime)
-    master = None     
-    while master is None:
-        master = getmasterbyjobID(jobID)
-        if master is not None:
-            break
-        time.sleep(60) # wait 60 seconds to avoid spamming the cluster
-        sys.stdout.write('.')
-        sys.stdout.flush()
-    os.environ["MASTER"] = "spark://{}:7077".format(master)
-    enoughworkers = False
-    while enoughworkers == False:
-        time.sleep(60)
-        workerlist = getworkersbymasterID(jobID)
-        rworkercount = len([worker for worker in  workerlist if worker['status'] == 'RUN'])
-        if rworkercount is None:
-            rworkercount = 0
-        print('There are {} workers running.'.format(rworkercount))
-        if rworkercount >= args.minworkers:
-            print('Sufficient workers')
-            enoughworkers = True
-
-    return master, jobID
-
-def submitAndDestroy(jobID, driverslots, sparksubargs, runtime):
-    master=getmasterbyjobID(jobID)
-    os.environ["MASTER"] = "spark://{}:7077".format(master)
-    driverjobID = submit(jobID, driverslots, sparksubargs, runtime)
-    drivercomplete = False
-    while not drivercomplete:
-        driverstat = subprocess.check_output("bjobs -noheader -o 'STAT' {}".format(driverjobID), universal_newlines=True, shell=True)
-        if str(driverstat).rstrip() in ("EXIT", "DONE"):
-            drivercomplete = True
-        time.sleep(30)
-    destroy(jobID)
-
-def bkilljob(jobID):
-    command = "bkill {}".format(jobID)
-    num_tries = 3
-    for i in range(num_tries):
-        try:
-            bkillout = subprocess.check_output(command, universal_newlines=True, shell=True)
-            print(bkillout)
-            break
-        except:
-            print("Failed to kill job {}:".format(jobID))
-            traceback.print_exc()
-            time.sleep(5)
-
-def selectionlist(joblist, jobtype):
-    i = 0
-    selectlist = {}
-    if len(joblist) == 1:
-        jobID = joblist[0]['jobid']
-        return jobID
-    else:
-        print("Select {} from list below:".format(jobtype))
-        for job in joblist:
-            i = i + 1
-            selectlist[i] = job['jobid']
-            print("{}) Host: {} jobID: {} Status: {}".format(i, job['host'], job['jobid'], job['status']))
-        while True:
-            selection = int(input("Selection? "))
-            if selection <= i:
-                jobID = selectlist[selection]
-                skipcheckstop = True
-                break
-            else:
-                print("Invalid selection.")
-        return jobID
 
 if __name__ == "__main__":
-
-    SPARKVERSIONS = {'2.3.1': '/misc/local/spark-2.3.1'}
-
-    skipcheckstop = False
-    parser = argparse.ArgumentParser(description="launch spark cluster job")
-                        
-    choices = ('lsd')
-                        
-    parser.add_argument("task", choices=choices)
-    parser.add_argument("-n", "--nnodes", type=int, default=2, required=False)
-    parser.add_argument("-v", "--version", type=str, default=defaultversion, required=False)
-    parser.add_argument("-t", "--hard_runtime", type=str, default=default_runlimit, required=False)
-    parser.add_argument("-s", "--submitargs", type=str, default='', required=False)
-    parser.add_argument("-o", "--driveroutfile", type=str, default='', required=False)
-    parser.add_argument("-d", "--driverslots", type=int, default=default_node_slots, required=False)
-    parser.add_argument("-P", "--lsf_project", type=str, default=None, required=False)
-    parser.add_argument("--driveronspark", action="store_true")
-    parser.add_argument("--silentlaunch", action="store_true")
-    parser.add_argument("--minworkers", type=int, default=1, required=False)
-                        
-    args = parser.parse_args()
-                        
-    if args.task == 'lsd':
-        master, jobID = launchAndWait()
-        master = 'spark://%s:7077' % master
-        sparksubargs = 'spark-submit {}'.format(args.submitargs)
-        print('\n')     
-        print(('%-20s%s\n%-20s%s' % ( 'job id:', jobID, 'spark master:', master ) ))
-        print('\n')     
-        p = multiprocessing.Process(target=submitAndDestroy, args=(jobID, args.driverslots, sparksubargs,args.hard_runtime))
-        p.start()       
+    main()
