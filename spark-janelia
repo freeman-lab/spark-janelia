@@ -10,6 +10,13 @@ import sys
 import time
 
 
+def ensure_python_3_6():
+    if sys.version_info < (3, 6):
+        raise Exception("requires python 3.6 or later")
+    # noinspection PyUnusedLocal
+    test_f_string = f'if this line fails to be parsed with a SyntaxError, you need to run with python 3.6 or later'
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="launch batch spark cluster job")
 
@@ -291,8 +298,7 @@ def create_run(args):
 
 def main():
 
-    if int(sys.version_info[0]) < 3:
-        raise Exception("requires python 3")
+    ensure_python_3_6()
 
     args = parse_args()
     run_info = create_run(args)
