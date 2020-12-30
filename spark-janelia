@@ -6,6 +6,7 @@ import datetime
 import os
 import string
 import subprocess
+import sys
 import time
 
 
@@ -289,6 +290,9 @@ def create_run(args):
 
 
 def main():
+
+    if int(sys.version_info[0]) < 3:
+        raise Exception("requires python 3")
 
     args = parse_args()
     run_info = create_run(args)
