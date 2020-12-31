@@ -49,10 +49,10 @@ bsub @{common_job_args} -W @{job_runtime_limit} \
   -o "@{run_logs_dir}/worker-%I-launch.log" \
   "@{run_scripts_dir}/03-launch-worker.sh"
 
-# dependency that waits for min workers before starting (need to debug why it doesn't work, maybe escaping problem?)
-# DRIVER_DEPENDENCY="started(${WORKER_JOB_NAME}) && numrun(${WORKER_JOB_NAME}, @{min_worker_nodes}"
-
-DRIVER_DEPENDENCY="started(${WORKER_JOB_NAME})"
+# numrun dependency only works with job id (not job name), so need to grab that here
+#   see https://www.ibm.com/support/knowledgecenter/SSWRJV_10.1.0/lsf_admin/job_array_dependency_set.html
+WORKER_JOB_ID=$(bjobs -noheader -A -J ${WORKER_JOB_NAME} | awk '{print $1}')
+DRIVER_DEPENDENCY="numrun(${WORKER_JOB_ID}, >= @{min_worker_nodes})"
 
 bsub @{common_job_args} -W @{job_runtime_limit} \
   -J ${DRIVER_JOB_NAME} -w "${DRIVER_DEPENDENCY}" -ti -n@{driver_slots} \
@@ -64,6 +64,9 @@ bsub @{common_job_args} -W 0:30 \
   -J ${SHUTDOWN_JOB_NAME} -w "ended(${DRIVER_JOB_NAME})" -ti -n1 \
   "@{run_scripts_dir}/05-shutdown-lsf-jobs.sh" "${DRIVER_LOG}" ${REVERSE_ORDERED_JOB_NAMES}
 
-bjobs -X -J '@{job_name_prefix}*'
+echo """
+Queued jobs are:
+$(bjobs -X -J '@{job_name_prefix}*')
+"""
 
 } 2>&1 | tee -a "@{run_logs_dir}"/00-queue-lsf-jobs.log
