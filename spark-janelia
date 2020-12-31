@@ -23,8 +23,8 @@ def parse_args():
     # -----------------------------------------------------------------
     # legacy args used by https://github.com/saalfeldlab/flintstone/blob/master/flintstone-lsd.sh ...
 
-    parser.add_argument("task", choices=['generate-run', 'generate-and-launch-run', 'lsd'],
-                        help='note: lsd is the same as generate_and_launch_run')
+    parser.add_argument("task", choices=['generate-run', 'generate-and-launch-run'],
+                        help='use generate-run if you want to review scripts before launching')
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False,
                         help='maximum number of worker nodes to schedule')
     parser.add_argument("-v", "--version", type=str, default='3.0.1', required=False,
@@ -73,14 +73,10 @@ def parse_args():
     parser.add_argument("--worker_slots", type=int, default=32, required=False,
                         help='slots per worker node')
 
-    # legacy spark-janelia supported other irrelevant-to-flintstone args, ignore those unknown args here
-    args, unknown = parser.parse_known_args()
+    args = parser.parse_args()
 
     # -----------------------------------------------------------------
     # setup args with more complex validation or derived defaults
-
-    if args.task == 'lsd':
-        args.task = 'generate-and-launch-run'
 
     java_home = args.java_home if args.java_home else '/misc/local/jdk1.8.0_102'
     if not os.path.isfile(f'{java_home}/bin/java'):
