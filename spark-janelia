@@ -313,7 +313,7 @@ def main():
     else:
         print(f'To launch jobs, run:\n  {run_info.launch_script}\n')
 
-    print('To get web user interface URL after driver has started, run:')
+    print('To get web user interface URL after master has started, run:')
     print(f'  grep "Bound MasterWebUI to" {run_info.logs_dir}/01-master.log\n')
 
 
