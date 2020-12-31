@@ -1,8 +1,8 @@
 # ----------------------------------------------------------------------------
-# Spark env template can be found in:
+# The base Spark install env template can be found in:
 #   ${SPARK_HOME}/conf/spark-env.sh.template
 #
-# The template populated parameters are:
+# This spark-janelia template was populated with the following parameters:
 #   java_home:      @{java_home}
 #   run_local_dirs: @{run_local_dirs}
 #   run_logs_dir:   @{run_logs_dir}
