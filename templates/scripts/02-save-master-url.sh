@@ -9,8 +9,6 @@
 #   master_url_path: @{master_url_path}
 # ----------------------------------------------------------------------------
 
-set -e
-
 MASTER_LOG_FILE="$1"
 MAX_ATTEMPTS="${2:-4}"
 
