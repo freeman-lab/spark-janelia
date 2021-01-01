@@ -14,7 +14,7 @@ you launch High Performance Compute (HPC) jobs:
 cd ${HOME}
 git clone https://github.com/JaneliaSciComp/spark-janelia
 ```
-A python 3.* environment is needed to run the spark-janelia script, 
+A python 3.6+ environment is needed to run the spark-janelia script, 
 so make sure that is also available on the host(s) where you launch HPC jobs.
 
 ---
@@ -23,9 +23,6 @@ so make sure that is also available on the host(s) where you launch HPC jobs.
 You can generate a run (see details in next section) and launch it in one step like this: 
 ```bash
 spark-janelia <args> generate-and-launch-run --submitargs <submit_arguments>
-
-# same thing using legacy 'lsd' task name for compatibility with old flintstone scripts
-spark-janelia <args> lsd --submitargs <submit_arguments>   
 ```
 
 ---
