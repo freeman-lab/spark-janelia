@@ -90,7 +90,7 @@ SUBMIT_ARGS="${SUBMIT_ARGS} ${ARGV}"
 CMD="${SPARK_JANELIA} ${PROJECT} ${SPARK_JANELIA_ARGS}"
 CMD="${CMD} --nnodes=${N_NODES} --gb_per_slot=${GB_PER_SLOT} --driverslots=${N_CORES_DRIVER}"
 CMD="${CMD} --worker_slots=${N_CORES_PER_WORKER} --minworkers=${MIN_WORKERS} --hard_runtime=${RUNTIME}"
-CMD="${CMD} --submitargs='${SUBMIT_ARGS}' ${SPARK_JANELIA_TASK}"
+CMD="${CMD} --submitargs=\"${SUBMIT_ARGS}\" ${SPARK_JANELIA_TASK}"
 
 echo """
 On ${HOSTNAME} with $(python -V 2>&1), running:
