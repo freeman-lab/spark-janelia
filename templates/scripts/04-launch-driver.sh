@@ -21,4 +21,4 @@ MASTER_URL=$(cat "@{master_url_path}")
 CMD="${SPARK_HOME}/bin/spark-submit --deploy-mode client --master ${MASTER_URL} @{submit_args}"
 
 echo "$(date) [${HOSTNAME}] running ${CMD}"
-${CMD}
+eval ${CMD}
