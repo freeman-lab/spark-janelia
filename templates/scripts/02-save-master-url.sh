@@ -10,7 +10,7 @@
 # ----------------------------------------------------------------------------
 
 MASTER_LOG_FILE="$1"
-MAX_ATTEMPTS="${2:-4}"
+MAX_ATTEMPTS="${2:-10}"
 
 for ATTEMPT in $(seq 1 ${MAX_ATTEMPTS}); do
 
