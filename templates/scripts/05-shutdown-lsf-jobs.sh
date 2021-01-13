@@ -8,13 +8,19 @@
 # we need to control the order in which the jobs are killed.
 #
 # The template populated parameters are:
-#   job_name_prefix: @{job_name_prefix}
-#   run_logs_dir:    @{run_logs_dir}
+#   consolidate_logs: @{consolidate_logs}
+#   job_name_prefix:  @{job_name_prefix}
+#   run_logs_dir:     @{run_logs_dir}
 # ----------------------------------------------------------------------------
 
 DRIVER_LOG="${1}"
 shift 1
 REVERSE_ORDERED_JOB_NAMES="$*"
+
+if [ "@{consolidate_logs}" = "False" ]; then
+  echo "$(date) [${HOSTNAME}] giving workers a chance to clean-up by sleeping for a minute ..."
+  sleep 60
+fi
 
 for ATTEMPT in 1 2; do
 

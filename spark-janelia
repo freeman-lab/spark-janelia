@@ -67,9 +67,6 @@ def parse_args():
                         help='override default directory on worker nodes containing worker jar and log files')
     parser.add_argument("--spark_home", type=str, default=os.getenv('SPARK_HOME'), required=False,
                         help='explicit SPARK_HOME directory, overrides --version')
-    parser.add_argument("--worker_opts", type=str, default='', required=False,
-                        help='additional arguments to pass to spark-class when launching workers '
-                             'e.g. -Dspark.worker.cleanup.enabled=true (to remove SPARK_WORKER_DIR on exit)')
     parser.add_argument("--worker_slots", type=int, default=32, required=False,
                         help='slots per worker node')
 
@@ -151,6 +148,18 @@ def write_common_config_files(args, run_info):
                     f'{run_info.config_dir}/spark-defaults.conf',
                     driver_memory=driver_memory)
 
+    # For supported SPARK_WORKER_OPTS, see https://spark.apache.org/docs/latest/spark-standalone.html .
+    worker_opts = ''
+
+    # If worker logs are not being consolidated into the central log directory
+    # where the driver and other logs are written (presumably for debug),
+    # enable automatic cleanup and set a short interval and time-to-live
+    # so that workers cleanup before the shutdown job kills them.
+    if not args.consolidate_logs:
+        worker_opts='-Dspark.worker.cleanup.enabled=true ' \
+                    '-Dspark.worker.cleanup.interval=30 ' \
+                    '-Dspark.worker.cleanup.appDataTtl=1'
+
     render_template('conf/spark-env.sh',
                     f'{run_info.config_dir}/spark-env.sh',
                     java_home=args.java_home,
@@ -159,7 +168,7 @@ def write_common_config_files(args, run_info):
                     run_worker_dir=run_info.worker_dir,
                     spark_home=args.spark_home,
                     worker_memory=worker_memory,
-                    worker_opts=args.worker_opts)
+                    worker_opts=worker_opts)
 
 
 def write_common_scripts(args, run_info):
@@ -208,6 +217,7 @@ def write_lsf_scripts(args, run_info):
 
     script_path = render_template('scripts/05-shutdown-lsf-jobs.sh',
                                   f'{run_info.scripts_dir}/05-shutdown-lsf-jobs.sh',
+                                  consolidate_logs=args.consolidate_logs,
                                   job_name_prefix=run_info.job_name_prefix,
                                   run_logs_dir=run_info.logs_dir)
     os.chmod(script_path, 0o755)
@@ -240,6 +250,7 @@ def write_sge_scripts(args, run_info):
 
     script_path = render_template('scripts/12-shutdown-sge-jobs.sh',
                                   f'{run_info.scripts_dir}/12-shutdown-sge-jobs.sh',
+                                  consolidate_logs=args.consolidate_logs,
                                   job_name_prefix=run_info.job_name_prefix,
                                   run_logs_dir=run_info.logs_dir)
     os.chmod(script_path, 0o755)
