@@ -30,6 +30,9 @@ N_CORES_DRIVER=${N_CORES_DRIVER:-32}
 #   http://wiki.int.janelia.org/wiki/display/ScientificComputing/Janelia+Compute+Cluster
 GB_PER_SLOT=${GB_PER_SLOT:-15}
 
+# consolidate logs by default until worker cleanup issues are fixed for multi-stage spark applications
+SPARK_JANELIA_ARGS="${SPARK_JANELIA_ARGS:---consolidate_logs}"
+
 SPARK_JANELIA_TASK=${SPARK_JANELIA_TASK:-generate-and-launch-run}
 CONDA_ACTIVATE=${CONDA_ACTIVATE:-/groups/flyTEM/flyTEM/anaconda2/bin/activate}
 CONDA_ENV=${CONDA_ENV:-py36}
