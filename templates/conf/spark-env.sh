@@ -24,8 +24,8 @@ export SPARK_LOG_DIR="@{run_logs_dir}"
 # working directory of worker processes
 export SPARK_WORKER_DIR="@{run_worker_dir}"
 
-# config properties only for the worker (e.g. -Dx=y)
-#   spark.worker.cleanup.enabled=true causes worker to remove SPARK_WORKER_DIR (with worker log data) before exit
+# config properties only for the worker using format -Dx=y ...
+#   see https://spark.apache.org/docs/latest/spark-standalone.html
 export SPARK_WORKER_OPTS="@{worker_opts}"
 
 # total memory available for all executors on a spark worker/node (e.g. 1000m, 2g)
