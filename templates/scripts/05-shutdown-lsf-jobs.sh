@@ -25,7 +25,7 @@ fi
 for ATTEMPT in 1 2; do
 
   for NAME in ${REVERSE_ORDERED_JOB_NAMES}; do
-    CMD="bkill -J ${NAME}"
+    CMD="bkill -d -J ${NAME}"
     echo "$(date) [${HOSTNAME}] running ${CMD} ..."
     ${CMD}
     sleep 10
