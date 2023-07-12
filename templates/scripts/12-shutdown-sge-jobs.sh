@@ -22,8 +22,7 @@ fi
 for ATTEMPT in 1 2; do
 
   for NAME in ${REVERSE_ORDERED_JOB_NAMES}; do
-    # TODO: verify this works
-    CMD="qselect -N ${NAME} | xargs qdel"
+    CMD="qstat -xml | grep -B 7 '<JB_name>${NAME}</JB_name>' | grep '<JB_job_number>' | awk -F'[<>]' '{print \$3}' | xargs qdel"
     echo "$(date) [${HOSTNAME}] running ${CMD} ..."
     ${CMD}
     sleep 10
