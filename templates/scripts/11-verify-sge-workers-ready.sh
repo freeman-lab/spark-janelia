@@ -8,26 +8,31 @@
 
 set -e
 
-WORKER_JOB_NAME="${1}"
+WORKER_JOB_ID="${1}"
 MAX_ATTEMPTS="${2}"
 POLLING_INTERVAL_SECONDS="${3}"
 MIN_NUMBER_OF_WORKERS="${4}"
+MAX_NUMBER_OF_WORKERS="${5}"
 
 for ATTEMPT in $(seq 1 ${MAX_ATTEMPTS}); do
 
-  echo "$(date) [${HOSTNAME}] attempt ${ATTEMPT} checking job ${WORKER_JOB_NAME}"
+  echo "$(date) [${HOSTNAME}] attempt ${ATTEMPT} checking job ${WORKER_JOB_ID}"
 
   # print qstat output to help with debugging later ...
-  qstat -j ${WORKER_JOB_NAME}
+  qstat -j ${WORKER_JOB_ID}
 
-  # Job ID      Username  Queue         Jobname     Limit  State  Elapsed
-  #------      --------  -----         -------     -----  -----  -------
-  #240         hmprof    sun-long      STDIN       27:00  Hold   --
-  #379         jqpublic  sun-long      foo         27:00  Run    00:03
+  # > qstat -j 6194893
+  # ==============================================================
+  # job_number:                 6194893
+  # ...
+  # job-array tasks:            1-1:1
+  # ...
+  # pending_tasks:              0
+  # ...
 
   # TODO: someone with SGE needs to test this and make sure it works
-  # TODO: need to ensure "Run" is coming from State column
-  RUN_COUNT=$(qstat -j ${WORKER_JOB_NAME} | grep -c 'Run')
+  PENDING_TASKS=$(qstat -j ${WORKER_JOB_ID} | awk '/^pending_tasks:/ { print $2 }')
+  RUN_COUNT=$(( MAX_NUMBER_OF_WORKERS - PENDING_TASKS ))
 
   echo "$(date) [${HOSTNAME}] found ${RUN_COUNT} running workers"
 

@@ -12,7 +12,7 @@
 
 DRIVER_LOG="${1}"
 shift 1
-REVERSE_ORDERED_JOB_NAMES="$*"
+REVERSE_ORDERED_JOB_IDS="$*"
 
 if [ "@{consolidate_logs}" = "False" ]; then
   echo "$(date) [${HOSTNAME}] giving workers a chance to clean-up by sleeping for a minute ..."
@@ -21,17 +21,34 @@ fi
 
 for ATTEMPT in 1 2; do
 
-  for NAME in ${REVERSE_ORDERED_JOB_NAMES}; do
-    CMD="qstat -xml | grep -B 7 '<JB_name>${NAME}</JB_name>' | grep '<JB_job_number>' | awk -F'[<>]' '{print \$3}' | xargs qdel"
+  echo "
+Attempt ${ATTEMPT} at shutting down spark jobs ...
+"
+
+  for JOB_ID in ${REVERSE_ORDERED_JOB_IDS}; do
+    CMD="qstat | grep ${JOB_ID} | xargs qdel"
     echo "$(date) [${HOSTNAME}] running ${CMD} ..."
     ${CMD}
     sleep 10
   done
 
-  # TODO: verify this works
-  RUN_COUNT=$(qstat -j '@{job_name_prefix}*' 2>&1 | grep -c 'Run')
+  # > qstat -j 6194893
+  # ==============================================================
+  # job_number:                 6194893
+  # jclass:                     NONE
+  # ...
+  # start_time            1:    07/19/2023 16:04:51.868
+  # job_state             1:    r
+  # ...
 
-  if (( RUN_COUNT == 0 )); then
+  # TODO: verify this works
+  TOTAL_RUN_COUNT=0
+  for JOB_ID in ${REVERSE_ORDERED_JOB_IDS}; do
+    RUN_COUNT=$(qstat -j ${JOB_ID} | grep -c "^job_state.*r")
+    TOTAL_RUN_COUNT=$(( TOTAL_RUN_COUNT + RUN_COUNT ))
+  done
+
+  if (( TOTAL_RUN_COUNT == 0 )); then
     break
   fi
 
@@ -50,4 +67,4 @@ echo
 rm -f "@{run_logs_dir}"/worker*/*/*/*.jar
 
 echo "$(date) [${HOSTNAME}] done, remaining jobs are:"
-qstat -j '@{job_name_prefix}*'
+qstat
