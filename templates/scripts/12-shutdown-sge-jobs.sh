@@ -28,7 +28,7 @@ Attempt ${ATTEMPT} at shutting down spark jobs ...
   for JOB_ID in ${REVERSE_ORDERED_JOB_IDS}; do
     CMD="qstat | grep ${JOB_ID} | xargs qdel"
     echo "$(date) [${HOSTNAME}] running ${CMD} ..."
-    ${CMD}
+    eval ${CMD}
     sleep 10
   done
 
