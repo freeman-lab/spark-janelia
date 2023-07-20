@@ -16,10 +16,16 @@ MAX_NUMBER_OF_WORKERS="${5}"
 
 for ATTEMPT in $(seq 1 ${MAX_ATTEMPTS}); do
 
-  echo "$(date) [${HOSTNAME}] attempt ${ATTEMPT} checking job ${WORKER_JOB_ID}"
+  echo "
+$(date) [${HOSTNAME}] attempt ${ATTEMPT} checking job ${WORKER_JOB_ID}
 
+qstat -j ${WORKER_JOB_ID}
+"
   # print qstat output to help with debugging later ...
   qstat -j ${WORKER_JOB_ID}
+
+  echo "
+"
 
   # > qstat -j 6194893
   # ==============================================================
@@ -30,7 +36,6 @@ for ATTEMPT in $(seq 1 ${MAX_ATTEMPTS}); do
   # pending_tasks:              0
   # ...
 
-  # TODO: someone with SGE needs to test this and make sure it works
   PENDING_TASKS=$(qstat -j ${WORKER_JOB_ID} | awk '/^pending_tasks:/ { print $2 }')
   RUN_COUNT=$(( MAX_NUMBER_OF_WORKERS - PENDING_TASKS ))
 
