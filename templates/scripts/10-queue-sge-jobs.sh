@@ -48,8 +48,8 @@ POLLING_INTERVAL_SECONDS=30
 WORKER_READY_JOB_ID=$(qsub @{common_job_args} -terse -l h_rt=@{job_max_run_seconds} -N ${WORKER_READY_JOB_NAME} -pe mpi 1 -j y -V -o "@{run_logs_dir}/11-verify-workers-ready.log" "@{run_scripts_dir}/11-verify-sge-workers-ready.sh" ${WORKER_JOB_ID} ${MAX_ATTEMPTS} ${POLLING_INTERVAL_SECONDS} @{min_worker_nodes} @{max_worker_nodes})
 echo "submitted job ${WORKER_READY_JOB_ID} with name ${WORKER_READY_JOB_NAME}"
 
-# include $SGE_TASK_ID in worker log name so that output from multiple workers are separated
-WORKER_JOB_ID=$(qsub @{common_job_args} -terse -l h_rt=@{job_max_run_seconds} -N ${WORKER_JOB_NAME} -t 1-@{max_worker_nodes} -hold_jid ${URL_JOB_ID} -pe mpi @{worker_slots} -j y -V -o "@{run_logs_dir}/worker-\$SGE_TASK_ID-launch.log" "@{run_scripts_dir}/03-launch-worker.sh")
+# include $TASK_ID "pseudo environment variable" in worker log name so that output from multiple workers are separated
+WORKER_JOB_ID=$(qsub @{common_job_args} -terse -l h_rt=@{job_max_run_seconds} -N ${WORKER_JOB_NAME} -t 1-@{max_worker_nodes} -hold_jid ${URL_JOB_ID} -pe mpi @{worker_slots} -j y -V -o "@{run_logs_dir}/worker-\$TASK_ID-launch.log" "@{run_scripts_dir}/03-launch-worker.sh")
 echo "submitted job ${WORKER_JOB_ID} with name ${WORKER_JOB_NAME}"
 
 DRIVER_JOB_ID=$(qsub @{common_job_args} -terse -l h_rt=@{job_max_run_seconds} -N ${DRIVER_JOB_NAME} -hold_jid ${WORKER_READY_JOB_ID}  -pe mpi @{driver_slots} -j y -V -o "${DRIVER_LOG}" "@{run_scripts_dir}/04-launch-driver.sh")
