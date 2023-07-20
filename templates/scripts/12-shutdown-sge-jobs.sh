@@ -26,9 +26,8 @@ Attempt ${ATTEMPT} at shutting down spark jobs ...
 "
 
   for JOB_ID in ${REVERSE_ORDERED_JOB_IDS}; do
-    CMD="qstat | grep ${JOB_ID} | xargs qdel"
-    echo "$(date) [${HOSTNAME}] running ${CMD} ..."
-    eval ${CMD}
+    echo "$(date) [${HOSTNAME}] running qdel ${JOB_ID} ..."
+    qdel ${JOB_ID}
     sleep 10
   done
 
@@ -41,7 +40,6 @@ Attempt ${ATTEMPT} at shutting down spark jobs ...
   # job_state             1:    r
   # ...
 
-  # TODO: verify this works
   TOTAL_RUN_COUNT=0
   for JOB_ID in ${REVERSE_ORDERED_JOB_IDS}; do
     RUN_COUNT=$(qstat -j ${JOB_ID} | grep -c "^job_state.*r")
@@ -50,6 +48,8 @@ Attempt ${ATTEMPT} at shutting down spark jobs ...
 
   if (( TOTAL_RUN_COUNT == 0 )); then
     break
+  else
+    echo "$(date) [${HOSTNAME}] ${TOTAL_RUN_COUNT} jobs are still running"
   fi
 
 done
