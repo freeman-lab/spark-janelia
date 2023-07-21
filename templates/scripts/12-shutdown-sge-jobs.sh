@@ -22,7 +22,7 @@ fi
 for ATTEMPT in 1 2; do
 
   echo "
-Attempt ${ATTEMPT} at shutting down spark jobs ...
+Attempt ${ATTEMPT} at shutting down spark jobs: ${REVERSE_ORDERED_JOB_IDS}
 "
 
   for JOB_ID in ${REVERSE_ORDERED_JOB_IDS}; do
