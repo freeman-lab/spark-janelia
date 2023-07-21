@@ -29,6 +29,7 @@ SHUTDOWN_JOB_NAME="@{job_name_prefix}_sd"
 
 MASTER_LOG="@{run_logs_dir}/01-master.log"
 DRIVER_LOG="@{run_logs_dir}/04-driver.log"
+SHUTDOWN_LOG="@{run_logs_dir}/12-shutdown.log"
 
 echo "$(date) [${HOSTNAME}] submitting jobs to scheduler"
 
@@ -55,9 +56,9 @@ echo "submitted job ${WORKER_READY_JOB_ID} with name ${WORKER_READY_JOB_NAME}"
 DRIVER_JOB_ID=$(qsub @{common_job_args} -terse -l h_rt=@{job_max_run_seconds} -N ${DRIVER_JOB_NAME} -hold_jid ${WORKER_READY_JOB_ID}  -pe mpi @{driver_slots} -j y -V -o "${DRIVER_LOG}" "@{run_scripts_dir}/04-launch-driver.sh")
 echo "submitted job ${DRIVER_JOB_ID} with name ${DRIVER_JOB_NAME}"
 
-# do not redirect shutdown job output so that it gets emailed instead (notifying user of completion)
+# add -m ea option to get emailed when shutdown job ends or aborts
 REVERSE_ORDERED_JOB_IDS="${DRIVER_JOB_ID} ${WORKER_JOB_ID} ${WORKER_READY_JOB_ID} ${URL_JOB_ID} ${MASTER_JOB_ID}"
-SHUTDOWN_JOB_ID=$(qsub @{common_job_args} -terse -l h_rt=1800 -N ${SHUTDOWN_JOB_NAME} -hold_jid ${DRIVER_JOB_ID} -pe mpi 1 -j y -V "@{run_scripts_dir}/12-shutdown-sge-jobs.sh" "${DRIVER_LOG}" ${REVERSE_ORDERED_JOB_IDS})
+SHUTDOWN_JOB_ID=$(qsub @{common_job_args} -terse -l h_rt=1800 -N ${SHUTDOWN_JOB_NAME} -hold_jid ${DRIVER_JOB_ID} -pe mpi 1 -j y -V -o "${SHUTDOWN_LOG}" -m ea "@{run_scripts_dir}/12-shutdown-sge-jobs.sh" "${DRIVER_LOG}" ${REVERSE_ORDERED_JOB_IDS})
 echo "submitted job ${SHUTDOWN_JOB_ID} with name ${SHUTDOWN_JOB_NAME}
 
 "
