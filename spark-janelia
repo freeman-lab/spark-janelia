@@ -94,8 +94,8 @@ def parse_args():
             args.common_job_args = f'-P {args.lsf_project} {args.common_job_args}'.strip()
 
     elif args.hpc_type == 'sge':
-        sge_job_id_vars = '${JOB_ID}-${SGE_TASK_ID}'
-        worker_scratch_dir = f'/scratch/{user_name}/spark-{sge_job_id_vars}'
+        # sge_job_id_vars = '${JOB_ID}-${SGE_TASK_ID}'
+        worker_scratch_dir = '${TMPDIR}'
 
         if args.lsf_project:
             args.common_job_args = f'-A {args.lsf_project} {args.common_job_args}'.strip()
