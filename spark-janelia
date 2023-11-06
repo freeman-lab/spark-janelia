@@ -27,7 +27,7 @@ def parse_args():
                         help='use generate-run if you want to review scripts before launching')
     parser.add_argument("-n", "--nnodes", type=int, default=2, required=False,
                         help='maximum number of worker nodes to schedule')
-    parser.add_argument("-v", "--version", type=str, default='3.0.1', required=False,
+    parser.add_argument("-v", "--version", type=str, default='3.4.1', required=False,
                         help='shortcut for specifying SPARK_HOMEs in /misc/local/spark-*')
     parser.add_argument("-t", "--hard_runtime", type=str, default='8:00', required=False,
                         help='maximum number of minutes to allow jobs to run, '
@@ -143,6 +143,9 @@ def write_common_config_files(args, run_info):
 
     render_template('conf/log4j.properties',
                     f'{run_info.config_dir}/log4j.properties')
+
+    render_template('conf/log4j2.properties',
+                    f'{run_info.config_dir}/log4j2.properties')
 
     render_template('conf/spark-defaults.conf',
                     f'{run_info.config_dir}/spark-defaults.conf',
