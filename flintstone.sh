@@ -58,6 +58,7 @@ N_CORES_PER_WORKER           number of cores to allocate for each worker node   
 N_EXECUTORS_PER_NODE         number of executors to allocate to each worker node      ${N_EXECUTORS_PER_NODE}
 N_OVERHEAD_CORES_PER_WORKER  number of overhead cores to add to each worker node      ${N_OVERHEAD_CORES_PER_WORKER}
 N_TASKS_PER_EXECUTOR_CORE    number of tasks to allocate to each executor core        ${N_TASKS_PER_EXECUTOR_CORE}
+OVERRIDE_PARALLELISM         explicit parallelism value (overrides derived value)     ${OVERRIDE_PARALLELISM}
 RUNTIME                      hard runtime threshold for jobs                          ${RUNTIME}
 SPARK_HOME                   spark install location                                   ${SPARK_HOME}
 SPARK_JANELIA                path to spark-janelia script                             ${SPARK_JANELIA}
@@ -76,6 +77,10 @@ ARGV="$@"
 MEMORY_PER_EXECUTOR=$(( N_CORES_PER_EXECUTOR * GB_PER_SLOT ))
 N_EXECUTORS=$(( N_NODES *  N_EXECUTORS_PER_NODE ))
 PARALLELISM=$(( N_EXECUTORS * N_CORES_PER_EXECUTOR * N_TASKS_PER_EXECUTOR_CORE ))
+
+if [ -n "${OVERRIDE_PARALLELISM}" ]; then
+  PARALLELISM="${OVERRIDE_PARALLELISM}"
+fi
 
 SUBMIT_ARGS="${SUBMIT_ARGS} --verbose"
 SUBMIT_ARGS="${SUBMIT_ARGS} --conf spark.default.parallelism=$PARALLELISM"
