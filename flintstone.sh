@@ -84,6 +84,7 @@ fi
 
 SUBMIT_ARGS="${SUBMIT_ARGS} --verbose"
 SUBMIT_ARGS="${SUBMIT_ARGS} --conf spark.default.parallelism=$PARALLELISM"
+SUBMIT_ARGS="${SUBMIT_ARGS} --conf spark.driver.cores=${N_CORES_DRIVER}"
 SUBMIT_ARGS="${SUBMIT_ARGS} --conf spark.executor.instances=$N_EXECUTORS_PER_NODE"
 SUBMIT_ARGS="${SUBMIT_ARGS} --conf spark.executor.cores=$N_CORES_PER_EXECUTOR"
 SUBMIT_ARGS="${SUBMIT_ARGS} --conf spark.executor.memory=${MEMORY_PER_EXECUTOR}g"
